@@ -1,84 +1,138 @@
 // src/app/api/orders/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
 
-type CreateOrderBody = {
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+interface CreateOrderBody {
   artworkId: string;
-  productType: string;
-  quantity: number;
-  customerName: string;
   email: string;
-  addressLine1: string;
+  name?: string;
+  addressLine1?: string;
   addressLine2?: string;
-  city: string;
-  postcode: string;
-  country: string;
-};
+  city?: string;
+  postcode?: string;
+  country?: string;
+  // keep it loose – extra fields from the form are fine
+  [key: string]: unknown;
+}
+
+// Simple GET so we can sanity-check the route in the browser
+export async function GET() {
+  return NextResponse.json({
+    ok: true,
+    route: "/api/orders",
+    methods: ["POST"],
+    mode: "stateless-stripe",
+  });
+}
 
 export async function POST(req: NextRequest) {
   try {
-    const body = (await req.json()) as CreateOrderBody;
+    const body = (await req.json()) as CreateOrderBody | null;
 
-    const requiredFields: (keyof CreateOrderBody)[] = [
-      "artworkId",
-      "productType",
-      "quantity",
-      "customerName",
-      "email",
-      "addressLine1",
-      "city",
-      "postcode",
-      "country",
-    ];
+    console.log("[orders] POST /api/orders body:", body);
 
-    for (const field of requiredFields) {
-      if (!body[field]) {
-        return NextResponse.json(
-          { error: `Missing required field: ${field}` },
-          { status: 400 }
-        );
-      }
-    }
-
-    const artwork = await prisma.artwork.findUnique({
-      where: { id: body.artworkId },
-    });
-
-    if (!artwork) {
+    if (!body?.artworkId) {
       return NextResponse.json(
-        { error: "Artwork not found. Please regenerate and try again." },
-        { status: 404 }
+        { error: "artworkId is required" },
+        { status: 400 }
       );
     }
 
-    const order = await prisma.order.create({
-      data: {
-        artworkId: artwork.id,
-        productType: body.productType,
-        quantity: body.quantity || 1,
-        customerName: body.customerName,
+    if (!body.email) {
+      return NextResponse.json(
+        { error: "email is required" },
+        { status: 400 }
+      );
+    }
+
+    const origin = req.nextUrl.origin;
+    const siteUrl = process.env.SITE_URL || origin;
+
+    const priceId = process.env.STRIPE_PRICE_ID;
+    const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+
+    if (!stripeSecretKey) {
+      console.error("[orders] Missing STRIPE_SECRET_KEY");
+      return NextResponse.json(
+        { error: "Stripe is not configured on the server." },
+        { status: 500 }
+      );
+    }
+
+    if (!priceId) {
+      console.error("[orders] Missing STRIPE_PRICE_ID");
+      return NextResponse.json(
+        { error: "Stripe price is not configured on the server." },
+        { status: 500 }
+      );
+    }
+
+    // 🔥 Lazy import Stripe so this route never becomes edge by accident
+    const StripeModule = await import("stripe");
+    const Stripe = StripeModule.default;
+    const stripe = new Stripe(stripeSecretKey, {
+      apiVersion: "2023-10-16",
+    });
+
+    // Generate a simple order id for metadata – we’re not hitting Prisma
+    const orderId = `ord_${Math.random().toString(16).slice(2, 10)}`;
+
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      payment_method_types: ["card"],
+      line_items: [
+        {
+          price: priceId,
+          quantity: 1,
+        },
+      ],
+      customer_email: body.email,
+      success_url: `${siteUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${siteUrl}/cancel`,
+      metadata: {
+        orderId,
+        artworkId: body.artworkId,
         email: body.email,
-        addressLine1: body.addressLine1,
-        addressLine2: body.addressLine2 ?? null,
-        city: body.city,
-        postcode: body.postcode,
-        country: body.country,
-        status: "pending_payment",
       },
     });
 
+    if (!session.url) {
+      console.error("[orders] Stripe session created without URL:", session.id);
+      return NextResponse.json(
+        {
+          error: "Failed to create checkout session.",
+        },
+        { status: 500 }
+      );
+    }
+
+    console.log(
+      "[orders] Created Stripe session",
+      session.id,
+      "for order",
+      orderId
+    );
+
     return NextResponse.json(
       {
-        orderId: order.id,
-        status: order.status,
-        createdAt: order.createdAt.toISOString(),
+        ok: true,
+        orderId,
+        checkoutUrl: session.url,
       },
       { status: 200 }
     );
-  } catch (err) {
+  } catch (err: any) {
     console.error("[orders] Unexpected error in POST /api/orders:", err);
     return NextResponse.json(
-      { error: "Internal server error creating order" },
+      {
+        error: "Internal server error while creating order / checkout session.",
+        details:
+          process.env.NODE_ENV === "development"
+            ? String(err?.message || err)
+            : undefined,
+      },
       { status: 500 }
     );
   }
