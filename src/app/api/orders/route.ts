@@ -22,7 +22,7 @@ export async function GET() {
     ok: true,
     route: "/api/orders",
     methods: ["POST"],
-    mode: "stateless-stripe",
+    mode: "stateless-stripe-inline-price",
   });
 }
 
@@ -49,7 +49,6 @@ export async function POST(req: NextRequest) {
     const origin = req.nextUrl.origin;
     const siteUrl = process.env.SITE_URL || origin;
 
-    const priceId = process.env.STRIPE_PRICE_ID;
     const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 
     if (!stripeSecretKey) {
@@ -60,28 +59,29 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!priceId) {
-      console.error("[orders] Missing STRIPE_PRICE_ID");
-      return NextResponse.json(
-        { error: "Stripe price is not configured on the server." },
-        { status: 500 }
-      );
-    }
-
     // 🔥 Lazy import Stripe so this route never becomes edge by accident
     const StripeModule = await import("stripe");
     const Stripe = StripeModule.default;
-    const stripe = new Stripe(stripeSecretKey); // no apiVersion to satisfy TS
+    const stripe = new Stripe(stripeSecretKey); // no apiVersion to keep TS happy
 
     // Generate a simple order id for metadata – we’re not hitting Prisma
     const orderId = `ord_${Math.random().toString(16).slice(2, 10)}`;
 
+    // 💸 Inline price: £19.99 GBP for the custom flask
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       payment_method_types: ["card"],
       line_items: [
         {
-          price: priceId,
+          price_data: {
+            currency: "gbp",
+            unit_amount: 1999, // £19.99 in pence
+            product_data: {
+              name: "Custom Pet Flask",
+              description:
+                "AI-generated pet artwork on a premium stainless steel flask",
+            },
+          },
           quantity: 1,
         },
       ],
@@ -112,11 +112,16 @@ export async function POST(req: NextRequest) {
       orderId
     );
 
+    // Return a generous payload so whatever the checkout page expects is covered
     return NextResponse.json(
       {
         ok: true,
         orderId,
+        id: orderId,
         checkoutUrl: session.url,
+        url: session.url,
+        sessionUrl: session.url,
+        stripeSessionId: session.id,
       },
       { status: 200 }
     );
