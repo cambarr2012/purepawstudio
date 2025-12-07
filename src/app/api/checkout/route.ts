@@ -34,8 +34,14 @@ export async function POST(req: NextRequest) {
     const email =
       body?.email && typeof body.email === "string" ? body.email : undefined;
 
-    const origin = req.nextUrl.origin;
-    const siteUrl = process.env.SITE_URL || origin;
+    // More robust SITE_URL handling for local + Vercel preview + prod
+    const headerOrigin = req.headers.get("origin");
+    const siteUrl =
+      process.env.NEXT_PUBLIC_SITE_URL ||
+      process.env.SITE_URL ||
+      headerOrigin ||
+      req.nextUrl.origin ||
+      "http://localhost:3000";
 
     const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 
@@ -55,6 +61,7 @@ export async function POST(req: NextRequest) {
     // Inline price for now – £19.99 GBP
     const sessionParams: any = {
       mode: "payment",
+      client_reference_id: orderId,
       line_items: [
         {
           price_data: {
@@ -72,8 +79,12 @@ export async function POST(req: NextRequest) {
       success_url: `${siteUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${siteUrl}/cancel`,
       metadata: {
+        // camelCase
         orderId,
         artworkId,
+        // snake_case for older code paths / success page expectations
+        order_id: orderId,
+        artwork_id: artworkId,
       },
     };
 
@@ -81,9 +92,7 @@ export async function POST(req: NextRequest) {
       sessionParams.customer_email = email;
     }
 
-    const session = await stripe.checkout.sessions.create(
-      sessionParams as any
-    );
+    const session = await stripe.checkout.sessions.create(sessionParams as any);
 
     if (!session.url) {
       console.error(
