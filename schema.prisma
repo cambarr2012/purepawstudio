@@ -1,0 +1,41 @@
+// schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Artwork {
+  id           String   @id
+  imageUrl     String
+  petName      String?
+  petType      String?
+  styleId      String
+  qualityJson  Json?
+  createdAt    DateTime @default(now())
+
+  orders       Order[]
+}
+
+model Order {
+  id            String   @id @default(cuid())
+  artworkId     String
+  artwork       Artwork  @relation(fields: [artworkId], references: [id])
+
+  customerName  String
+  email         String
+  addressLine1  String
+  addressLine2  String?
+  city          String
+  postcode      String
+  country       String
+
+  productType   String
+  quantity      Int      @default(1)
+  status        String   @default("pending_payment")
+
+  createdAt     DateTime @default(now())
+}
