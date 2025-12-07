@@ -4,7 +4,6 @@ import prisma from "@/lib/prisma";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxBodySize = "16mb";
 
 type StyleId = "gangster" | "cartoon" | "girlboss";
 type QualityStatus = "good" | "warn" | "bad";
@@ -26,7 +25,7 @@ interface SaveArtworkBody {
   qualityResult?: QualityResult;
 }
 
-// Simple GET so we can confirm the route is alive
+// Simple GET so we can confirm the route is alive in the browser
 export async function GET() {
   return NextResponse.json({
     ok: true,
