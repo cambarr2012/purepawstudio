@@ -1,10 +1,15 @@
 // src/lib/stripe.ts
+// Keep this tiny and TypeScript-friendly for CI.
+
 import Stripe from "stripe";
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error("STRIPE_SECRET_KEY is not set");
+const secretKey = process.env.STRIPE_SECRET_KEY;
+
+if (!secretKey) {
+  throw new Error("Missing STRIPE_SECRET_KEY in environment");
 }
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2024-06-20",
-});
+// Don’t specify apiVersion – use the SDK’s default for this package version.
+export const stripe = new Stripe(secretKey);
+
+export default stripe;
