@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 interface CreateOrderBody {
   artworkId: string;
-  email: string;
+  email?: string;
   name?: string;
   addressLine1?: string;
   addressLine2?: string;
@@ -22,7 +22,7 @@ export async function GET() {
     ok: true,
     route: "/api/orders",
     methods: ["POST"],
-    mode: "stateless-stripe-inline-price",
+    mode: "stateless-order-only",
   });
 }
 
@@ -39,89 +39,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!body.email) {
-      return NextResponse.json(
-        { error: "email is required" },
-        { status: 400 }
-      );
-    }
-
-    const origin = req.nextUrl.origin;
-    const siteUrl = process.env.SITE_URL || origin;
-
-    const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-
-    if (!stripeSecretKey) {
-      console.error("[orders] Missing STRIPE_SECRET_KEY");
-      return NextResponse.json(
-        { error: "Stripe is not configured on the server." },
-        { status: 500 }
-      );
-    }
-
-    // 🔥 Lazy import Stripe so this route never becomes edge by accident
-    const StripeModule = await import("stripe");
-    const Stripe = StripeModule.default;
-    const stripe = new Stripe(stripeSecretKey); // no apiVersion to keep TS happy
-
-    // Generate a simple order id for metadata – we’re not hitting Prisma
+    // Generate a simple order id (we're not using Prisma right now)
     const orderId = `ord_${Math.random().toString(16).slice(2, 10)}`;
 
-    // 💸 Inline price: £19.99 GBP for the custom flask
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      payment_method_types: ["card"],
-      line_items: [
-        {
-          price_data: {
-            currency: "gbp",
-            unit_amount: 1999, // £19.99 in pence
-            product_data: {
-              name: "Custom Pet Flask",
-              description:
-                "AI-generated pet artwork on a premium stainless steel flask",
-            },
-          },
-          quantity: 1,
-        },
-      ],
-      customer_email: body.email,
-      success_url: `${siteUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${siteUrl}/cancel`,
-      metadata: {
-        orderId,
-        artworkId: body.artworkId,
-        email: body.email,
-      },
-    });
-
-    if (!session.url) {
-      console.error("[orders] Stripe session created without URL:", session.id);
-      return NextResponse.json(
-        {
-          error: "Failed to create checkout session.",
-        },
-        { status: 500 }
-      );
-    }
-
-    console.log(
-      "[orders] Created Stripe session",
-      session.id,
-      "for order",
-      orderId
-    );
-
-    // Return a generous payload so whatever the checkout page expects is covered
+    // Echo basic info back – frontend just needs something to call /api/checkout with
     return NextResponse.json(
       {
         ok: true,
         orderId,
-        id: orderId,
-        checkoutUrl: session.url,
-        url: session.url,
-        sessionUrl: session.url,
-        stripeSessionId: session.id,
+        id: orderId, // alias in case frontend expects `id`
+        artworkId: body.artworkId,
+        email: body.email ?? null,
       },
       { status: 200 }
     );
@@ -129,7 +57,7 @@ export async function POST(req: NextRequest) {
     console.error("[orders] Unexpected error in POST /api/orders:", err);
     return NextResponse.json(
       {
-        error: "Internal server error while creating order / checkout session.",
+        error: "Internal server error while creating order.",
         details:
           process.env.NODE_ENV === "development"
             ? String(err?.message || err)

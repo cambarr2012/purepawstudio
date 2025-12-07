@@ -1,95 +1,130 @@
 // src/app/api/checkout/route.ts
-import { NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe";
-import prisma from "@/lib/prisma";
+import { NextRequest, NextResponse } from "next/server";
 
-export const runtime = "nodejs"; // ensure not running in edge
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-export async function POST(req: Request) {
+interface CheckoutBody {
+  orderId?: string;
+  id?: string; // some UIs send `id` instead
+  artworkId?: string;
+  email?: string;
+  [key: string]: unknown;
+}
+
+// Simple GET – helps us check the route is live
+export async function GET() {
+  return NextResponse.json({
+    ok: true,
+    route: "/api/checkout",
+    methods: ["POST"],
+    mode: "stripe-inline-price",
+  });
+}
+
+export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { orderId } = body;
+    const body = (await req.json()) as CheckoutBody | null;
 
-    if (!orderId || typeof orderId !== "string") {
+    console.log("[checkout] POST /api/checkout body:", body);
+
+    const orderId =
+      body?.orderId || body?.id || `ord_${Math.random().toString(16).slice(2, 10)}`;
+    const artworkId = body?.artworkId ?? "";
+    const email =
+      body?.email && typeof body.email === "string" ? body.email : undefined;
+
+    const origin = req.nextUrl.origin;
+    const siteUrl = process.env.SITE_URL || origin;
+
+    const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+
+    if (!stripeSecretKey) {
+      console.error("[checkout] Missing STRIPE_SECRET_KEY");
       return NextResponse.json(
-        { error: "Missing or invalid orderId" },
-        { status: 400 }
-      );
-    }
-
-    // Quick debugging info (won't leak secrets)
-    console.log("[/api/checkout] Incoming orderId:", orderId);
-    console.log("[/api/checkout] ENV flags:", {
-      hasSecret: !!process.env.STRIPE_SECRET_KEY,
-      hasSuccessUrl: !!process.env.STRIPE_SUCCESS_URL,
-      hasCancelUrl: !!process.env.STRIPE_CANCEL_URL,
-      hasPriceId: !!process.env.STRIPE_PRICE_ID,
-    });
-
-    const order = await prisma.order.findUnique({
-      where: { id: orderId },
-      include: { artwork: true },
-    });
-
-    if (!order) {
-      return NextResponse.json(
-        { error: "Order not found" },
-        { status: 404 }
-      );
-    }
-
-    if (!process.env.STRIPE_SUCCESS_URL || !process.env.STRIPE_CANCEL_URL) {
-      return NextResponse.json(
-        { error: "Stripe redirect URLs not configured" },
+        { error: "Stripe is not configured on the server." },
         { status: 500 }
       );
     }
 
-    const unitAmount = 1999; // £19.99 in pence
+    // Lazy import Stripe so this route never accidentally becomes edge
+    const StripeModule = await import("stripe");
+    const Stripe = StripeModule.default;
+    const stripe = new Stripe(stripeSecretKey);
 
-    const session = await stripe.checkout.sessions.create({
+    // Inline price for now – £19.99 GBP
+    const sessionParams: any = {
       mode: "payment",
-      payment_method_types: ["card"],
       line_items: [
-        process.env.STRIPE_PRICE_ID
-          ? {
-              price: process.env.STRIPE_PRICE_ID,
-              quantity: order.quantity ?? 1,
-            }
-          : {
-              price_data: {
-                currency: "gbp",
-                unit_amount: unitAmount,
-                product_data: {
-                  name: "Custom Pet Flask",
-                  description: order.productType,
-                },
-              },
-              quantity: order.quantity ?? 1,
+        {
+          price_data: {
+            currency: "gbp",
+            unit_amount: 1999, // £19.99 in pence
+            product_data: {
+              name: "Custom Pet Flask",
+              description:
+                "AI-generated pet artwork on a premium stainless steel flask",
             },
+          },
+          quantity: 1,
+        },
       ],
-      success_url: `${process.env.STRIPE_SUCCESS_URL}?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: process.env.STRIPE_CANCEL_URL,
+      success_url: `${siteUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${siteUrl}/cancel`,
       metadata: {
-        orderId: order.id,
-        artworkId: order.artworkId,
-        customerEmail: order.email ?? "",
+        orderId,
+        artworkId,
       },
-      customer_email: order.email ?? undefined,
-    });
+    };
 
-    console.log("[/api/checkout] Created session:", session.id);
+    if (email) {
+      sessionParams.customer_email = email;
+    }
 
-    return NextResponse.json({ url: session.url }, { status: 200 });
-  } catch (error: any) {
-    console.error("Error creating checkout session:", error);
+    const session = await stripe.checkout.sessions.create(
+      sessionParams as any
+    );
 
-    // Surface the useful part of the error during local dev
-    const message =
-      error?.raw?.message ||
-      error?.message ||
-      "Internal server error creating checkout session";
+    if (!session.url) {
+      console.error(
+        "[checkout] Stripe session created without URL:",
+        session.id
+      );
+      return NextResponse.json(
+        { error: "Failed to create checkout session." },
+        { status: 500 }
+      );
+    }
 
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.log(
+      "[checkout] Created Stripe session",
+      session.id,
+      "for order",
+      orderId
+    );
+
+    return NextResponse.json(
+      {
+        ok: true,
+        orderId,
+        artworkId,
+        checkoutUrl: session.url,
+        url: session.url, // alias in case frontend expects `url`
+        sessionId: session.id,
+      },
+      { status: 200 }
+    );
+  } catch (err: any) {
+    console.error("[checkout] Unexpected error in POST /api/checkout:", err);
+    return NextResponse.json(
+      {
+        error: "Internal server error while creating checkout session.",
+        details:
+          process.env.NODE_ENV === "development"
+            ? String(err?.message || err)
+            : undefined,
+      },
+      { status: 500 }
+    );
   }
 }
