@@ -57,6 +57,7 @@ Return ONLY valid JSON, no extra text, exactly in this shape:
             {
               type: "input_image",
               image_url: imageBase64,
+              detail:"auto",
             },
           ],
         },
