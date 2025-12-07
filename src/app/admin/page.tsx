@@ -219,11 +219,7 @@ export default async function AdminPage() {
                             : String(artwork.createdAt)}
                           <div className="mt-1">
                             <span className="inline-flex items-center rounded-full border border-slate-700 px-2 py-[2px] text-[9px] text-slate-400">
-                              Orders:{" "}
-                              {
-                                // @ts-expect-error – _count is injected by Prisma
-                                (artwork as any)._count?.orders ?? 0
-                              }
+                              Orders: {(artwork as any)._count?.orders ?? 0}
                             </span>
                           </div>
                         </div>
