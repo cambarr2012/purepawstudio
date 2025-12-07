@@ -93,6 +93,9 @@ export async function POST(req: NextRequest) {
     }
 
     const session = await stripe.checkout.sessions.create(sessionParams as any);
+    console.log("[checkout] Session created:", session.id);
+    console.log("[checkout] Session metadata:", session.metadata);
+    
 
     if (!session.url) {
       console.error(

@@ -96,8 +96,12 @@ function CheckoutContent() {
       const checkoutRes = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId: orderData.orderId }),
-      });
+        body: JSON.stringify({
+             orderId,
+             artworkId,
+                 email,
+                 }),
+                });
 
       const checkoutJson = (await checkoutRes.json()) as
         | CreateCheckoutSessionResponse
