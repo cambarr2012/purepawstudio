@@ -85,7 +85,7 @@ export default async function AdminPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {orders.map((order) => (
+                    {orders.map((order: any) => (
                       <tr
                         key={order.id}
                         className="border-b border-slate-900/70 hover:bg-slate-900/80 transition"
@@ -129,13 +129,13 @@ export default async function AdminPage() {
                           </div>
                           <div className="text-slate-500 text-[10px]">
                             {order.artwork?.petName
-                              ? `${order.artwork.petName} · ${order.artwork.petType ?? "Pet"}`
+                              ? `${order.artwork.petName} · ${
+                                  order.artwork.petType ?? "Pet"
+                                }`
                               : order.artwork?.petType ?? "—"}
                           </div>
                           <div className="text-slate-500 text-[10px]">
-                            Style:{" "}
-                            {order.artwork?.styleId ??
-                              "unknown"}
+                            Style: {order.artwork?.styleId ?? "unknown"}
                           </div>
                         </td>
                         <td className="py-2 pl-3 pr-1 align-top text-right text-[10px] text-slate-500 whitespace-nowrap">
@@ -173,7 +173,7 @@ export default async function AdminPage() {
               </p>
             ) : (
               <div className="space-y-3 max-h-[460px] overflow-y-auto pr-1">
-                {artworks.map((artwork) => (
+                {artworks.map((artwork: any) => (
                   <div
                     key={artwork.id}
                     className="flex gap-3 rounded-xl border border-slate-800 bg-slate-950/60 p-3"
@@ -199,7 +199,9 @@ export default async function AdminPage() {
                           </div>
                           <div className="text-[11px] text-slate-200">
                             {artwork.petName
-                              ? `${artwork.petName} · ${artwork.petType ?? "Pet"}`
+                              ? `${artwork.petName} · ${
+                                  artwork.petType ?? "Pet"
+                                }`
                               : artwork.petType ?? "Unnamed pet"}
                           </div>
                           <div className="text-[10px] text-slate-500">
