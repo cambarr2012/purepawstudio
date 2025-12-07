@@ -1,111 +1,169 @@
-"use client";
+// src/app/success/page.tsx
+import Link from "next/link";
 
-import { Suspense, useEffect, useState } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-type OrderWithArtwork = {
-  id: string;
-  status: string;
-  createdAt: string | Date;
-  artwork?: {
-    id: string;
-    imageUrl?: string | null;
-    styleId?: string | null;
-  } | null;
+type SearchParams = {
+  session_id?: string;
 };
 
-function SuccessContent() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const orderId = searchParams.get("orderId");
+async function fetchStripeSession(sessionId: string) {
+  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 
-  const [order, setOrder] = useState<OrderWithArtwork | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  if (!stripeSecretKey) {
+    console.error("[success] Missing STRIPE_SECRET_KEY");
+    return null;
+  }
 
-  // Fetch order details from API
-  useEffect(() => {
-    if (!orderId) return;
+  try {
+    const StripeModule = await import("stripe");
+    const Stripe = StripeModule.default;
+    const stripe = new Stripe(stripeSecretKey);
 
-    async function fetchOrder() {
-      try {
-        const res = await fetch(`/api/orders?orderId=${orderId}`);
-        const data = await res.json();
+    const session = await stripe.checkout.sessions.retrieve(sessionId, {
+      expand: ["payment_intent"],
+    });
 
-        if (!res.ok || data.error) {
-          setError(data.error || "Could not load your order.");
-          return;
-        }
+    return session;
+  } catch (err) {
+    console.error("[success] Error retrieving Stripe session:", err);
+    return null;
+  }
+}
 
-        setOrder(data.order ?? null);
-      } catch (err) {
-        console.error("Failed to load order:", err);
-        setError("Something went wrong while loading your order.");
-      }
-    }
+export default async function SuccessPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
+  const sessionId = searchParams?.session_id;
 
-    fetchOrder();
-  }, [orderId]);
+  if (!sessionId) {
+    // No session id in URL at all
+    return (
+      <main className="min-h-screen bg-slate-950 text-slate-50 flex items-center justify-center">
+        <div className="max-w-md text-center px-6">
+          <h1 className="text-2xl md:text-3xl font-semibold mb-3 text-teal-300">
+            Payment successful 🎉
+          </h1>
+          <p className="text-sm text-slate-300 mb-4">
+            We couldn&apos;t find a payment reference in this link.
+          </p>
+          <p className="text-xs text-slate-500 mb-6">
+            This can happen if the page was opened directly or the URL was
+            modified.
+          </p>
+          <Link
+            href="/"
+            className="inline-flex items-center justify-center rounded-full bg-teal-400 px-4 py-2 text-xs font-medium text-slate-950 hover:bg-teal-300 transition"
+          >
+            Return to the studio
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
+  const session = await fetchStripeSession(sessionId);
+
+  const metadata = (session?.metadata ??
+    {}) as Record<string, string | undefined>;
+
+  const orderId =
+    metadata.orderId ||
+    metadata.order_id ||
+    session?.client_reference_id ||
+    null;
+
+  const artworkId = metadata.artworkId || metadata.artwork_id || null;
+
+  const customerEmail =
+    (session?.customer_details?.email as string | null) ?? null;
+
+  const hasReference = !!orderId || !!artworkId;
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-50">
-      {/* Background gradient */}
-      <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top,_rgba(45,212,191,0.12)_0,transparent_55%),radial-gradient(circle_at_bottom,_rgba(15,23,42,1)_0,rgba(15,23,42,1)_55%)]" />
-
-      <div className="max-w-3xl mx-auto px-4 py-14 text-center">
-        <h1 className="text-3xl font-semibold mb-3 text-teal-300">
+    <main className="min-h-screen bg-slate-950 text-slate-50 flex items-center justify-center">
+      <div className="max-w-lg w-full px-6 text-center">
+        <h1 className="text-2xl md:text-3xl font-semibold mb-3 text-teal-300">
           Payment successful 🎉
         </h1>
 
-        {!orderId && (
-          <p className="text-slate-400 text-sm">
-            Missing order reference — please return to the studio.
-          </p>
-        )}
-
-        {error && (
-          <p className="mt-4 text-rose-300 text-sm">{error}</p>
-        )}
-
-        {order && !error && (
+        {hasReference ? (
           <>
-            <p className="text-slate-300 mt-2 text-sm">
-              Order ID:{" "}
-              <span className="font-mono text-[11px] text-slate-100">
-                {order.id}
-              </span>
+            <p className="text-sm text-slate-200 mb-2">
+              Thank you for ordering your custom pet flask.
+            </p>
+            <p className="text-xs text-slate-400 mb-4">
+              We&apos;ve received your order and will start preparing your
+              artwork for printing.
             </p>
 
-            <p className="text-slate-400 mt-1 text-sm">
-              We’ll start preparing your custom flask for production.
+            <div className="mt-4 inline-flex flex-col gap-2 items-start mx-auto text-left bg-slate-900/70 border border-slate-700 rounded-xl px-4 py-3 text-xs">
+              {orderId && (
+                <p>
+                  <span className="font-semibold text-slate-200">
+                    Order reference:
+                  </span>{" "}
+                  <span className="font-mono text-slate-300">{orderId}</span>
+                </p>
+              )}
+              {artworkId && (
+                <p>
+                  <span className="font-semibold text-slate-200">
+                    Artwork ID:
+                  </span>{" "}
+                  <span className="font-mono text-slate-300">
+                    {artworkId}
+                  </span>
+                </p>
+              )}
+              {customerEmail && (
+                <p className="text-slate-400">
+                  A confirmation has been sent to{" "}
+                  <span className="font-medium text-slate-200">
+                    {customerEmail}
+                  </span>
+                  .
+                </p>
+              )}
+            </div>
+
+            <p className="mt-5 text-[11px] text-slate-500">
+              You don&apos;t need to keep this page open — we&apos;ll use these
+              references internally to print and ship your flask.
             </p>
-
-            {order.artwork?.imageUrl && (
-              <div className="mt-8 flex justify-center">
-                <img
-                  src={order.artwork.imageUrl}
-                  alt="Your Artwork"
-                  className="w-60 h-60 object-contain rounded-xl border border-slate-800 bg-slate-900 shadow-[0_10px_40px_rgba(0,0,0,0.6)]"
-                />
-              </div>
-            )}
-
-            <button
-              onClick={() => router.push("/")}
-              className="mt-10 px-5 py-2.5 rounded-lg bg-teal-400 text-slate-900 font-medium text-sm hover:bg-teal-300 transition"
-            >
-              Back to home
-            </button>
+          </>
+        ) : (
+          <>
+            <p className="text-sm text-slate-200 mb-2">
+              Your card was successfully charged, but we couldn&apos;t find an
+              order reference for this session.
+            </p>
+            <p className="text-xs text-slate-400 mb-4">
+              This is usually safe to ignore during testing. If this happens in
+              production, contact support with your email and the time of
+              payment and we&apos;ll locate your order.
+            </p>
           </>
         )}
+
+        <div className="mt-6 flex justify-center gap-3 text-xs">
+          <Link
+            href="/"
+            className="inline-flex items-center justify-center rounded-full bg-teal-400 px-4 py-2 font-medium text-slate-950 hover:bg-teal-300 transition"
+          >
+            Back to studio
+          </Link>
+          <Link
+            href="/orders"
+            className="inline-flex items-center justify-center rounded-full border border-slate-700 px-4 py-2 font-medium text-slate-200 hover:border-slate-500 hover:bg-slate-900/60 transition"
+          >
+            View my orders
+          </Link>
+        </div>
       </div>
     </main>
-  );
-}
-
-export default function SuccessPage() {
-  return (
-    <Suspense fallback={<div className="text-slate-400 p-10">Loading…</div>}>
-      <SuccessContent />
-    </Suspense>
   );
 }
