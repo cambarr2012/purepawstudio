@@ -1,6 +1,5 @@
 // src/app/api/artworks/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -54,6 +53,9 @@ export async function POST(req: NextRequest) {
     if (!body.imageBase64.startsWith("data:image")) {
       console.warn("[artworks] imageBase64 is not a data URL");
     }
+
+    // 🔥 Dynamically import Prisma on the server
+    const { default: prisma } = await import("@/lib/prisma");
 
     // Save directly into the Artwork table
     const artwork = await prisma.artwork.create({
