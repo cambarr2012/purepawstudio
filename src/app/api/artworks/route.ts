@@ -1,5 +1,6 @@
 // src/app/api/artworks/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,12 +31,13 @@ export async function GET() {
     ok: true,
     route: "/api/artworks",
     methods: ["GET", "POST"],
+    storage: "stateless-temp",
   });
 }
 
 export async function POST(req: NextRequest) {
   try {
-    console.log("[artworks] POST /api/artworks hit");
+    console.log("[artworks] POST /api/artworks hit (stateless mode)");
 
     const body = (await req.json()) as SaveArtworkBody | null;
     console.log(
@@ -54,38 +56,29 @@ export async function POST(req: NextRequest) {
       console.warn("[artworks] imageBase64 is not a data URL");
     }
 
-    // 🔥 Dynamically import Prisma on the server
-    const { default: prisma } = await import("@/lib/prisma");
-
-    // Save directly into the Artwork table
-    const artwork = await prisma.artwork.create({
-      data: {
-        imageUrl: body.imageBase64,
-        petName: body.petName ?? null,
-        petType: body.petType ?? null,
-        styleId: body.styleId,
-        qualityJson: body.qualityResult ? (body.qualityResult as any) : null,
-      },
-    });
+    // 🔑 Generate a pseudo-stable artwork ID without touching the DB
+    const artworkId = `art_${crypto.randomBytes(8).toString("hex")}`;
 
     const responsePayload = {
-      artworkId: artwork.id,
-      imageUrl: artwork.imageUrl,
-      petName: artwork.petName,
-      petType: artwork.petType,
-      styleId: artwork.styleId as StyleId,
+      artworkId,
+      // Frontend only really needs artworkId; keep everything else light
+      imageUrl: null as string | null,
+      petName: body.petName ?? null,
+      petType: body.petType ?? null,
+      styleId: body.styleId as StyleId,
       qualityResult: body.qualityResult ?? null,
-      createdAt: artwork.createdAt.toISOString(),
+      storageMode: "stateless-temp",
+      createdAt: new Date().toISOString(),
     };
 
-    console.log("[artworks] Saved artwork:", responsePayload.artworkId);
+    console.log("[artworks] Returning fake saved artwork:", responsePayload);
 
     return NextResponse.json(responsePayload, { status: 200 });
   } catch (err: any) {
     console.error("[artworks] Unexpected error in POST /api/artworks:", err);
     return NextResponse.json(
       {
-        error: "Internal server error saving artwork",
+        error: "Internal server error saving artwork (stateless mode)",
         details:
           process.env.NODE_ENV === "development"
             ? String(err?.message || err)
