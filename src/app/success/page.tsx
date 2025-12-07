@@ -1,8 +1,11 @@
 // src/app/success/page.tsx
 import Link from "next/link";
 
-export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const dynamicParams = true;
+export const runtime = "nodejs";
+export const fetchCache = "force-no-store";
+
 
 type SearchParams = {
   session_id?: string;
