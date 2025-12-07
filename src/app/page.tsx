@@ -4,6 +4,128 @@ import { useState, ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
+// --- Image compression helper (keeps payload under Vercel limits) ---
+async function compressImageToDataUrl(
+  file: File,
+  options?: {
+    maxWidth?: number;
+    maxHeight?: number;
+    quality?: number;
+    outputType?: "image/jpeg" | "image/png";
+  }
+): Promise<string> {
+  const {
+    maxWidth = 1024, // more aggressive to avoid 413
+    maxHeight = 1024,
+    quality = 0.7,
+    outputType = "image/jpeg",
+  } = options || {};
+
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    const img = new Image();
+
+    reader.onload = () => {
+      if (!reader.result || typeof reader.result !== "string") {
+        reject(new Error("Failed to read file as data URL"));
+        return;
+      }
+
+      img.onload = () => {
+        try {
+          const canvas = document.createElement("canvas");
+          const ctx = canvas.getContext("2d");
+          if (!ctx) {
+            reject(new Error("Canvas 2D context not available"));
+            return;
+          }
+
+          const ratio = Math.min(
+            maxWidth / img.width,
+            maxHeight / img.height,
+            1
+          );
+
+          const targetWidth = Math.round(img.width * ratio);
+          const targetHeight = Math.round(img.height * ratio);
+
+          canvas.width = targetWidth;
+          canvas.height = targetHeight;
+
+          ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+
+          const dataUrl = canvas.toDataURL(outputType, quality);
+          resolve(dataUrl);
+        } catch (err) {
+          reject(err);
+        }
+      };
+
+      img.onerror = reject;
+      img.src = reader.result;
+    };
+
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// Compress an existing base64 data URL (e.g. after background removal)
+async function compressBase64Image(
+  imageBase64: string,
+  options?: {
+    maxWidth?: number;
+    maxHeight?: number;
+    quality?: number;
+    outputType?: "image/jpeg" | "image/png";
+  }
+): Promise<string> {
+  const {
+    maxWidth = 800,
+    maxHeight = 800,
+    quality = 0.65,
+    outputType = "image/jpeg",
+  } = options || {};
+
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+
+    img.onload = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          reject(new Error("Canvas 2D context not available"));
+          return;
+        }
+
+        const ratio = Math.min(
+          maxWidth / img.width,
+          maxHeight / img.height,
+          1
+        );
+
+        const targetWidth = Math.round(img.width * ratio);
+        const targetHeight = Math.round(img.height * ratio);
+
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+
+        ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+
+        const dataUrl = canvas.toDataURL(outputType, quality);
+        resolve(dataUrl);
+      } catch (err) {
+        reject(err);
+      }
+    };
+
+    img.onerror = reject;
+    img.src = imageBase64;
+  });
+}
+// --- end helper ---
+
 type StyleId = "gangster" | "cartoon" | "girlboss";
 
 type QualityStatus = "good" | "warn" | "bad";
@@ -171,6 +293,8 @@ export default function HomePage() {
   const [processedUrl, setProcessedUrl] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
+  const [compressedImageBase64, setCompressedImageBase64] = useState<string | null>(null);
+
   const [isChecking, setIsChecking] = useState(false);
   const [qualityResult, setQualityResult] = useState<QualityResult | null>(
     null
@@ -232,26 +356,44 @@ export default function HomePage() {
     router.push(`/checkout?artworkId=${encodeURIComponent(artworkId)}`);
   }
 
-  function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
+  async function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setSelectedFile(file);
 
-    const url = URL.createObjectURL(file);
-    setPreviewUrl(url);
-    setProcessedUrl(null);
+    try {
+      // Compress the image before we do anything else
+      const compressedDataUrl = await compressImageToDataUrl(file, {
+        maxWidth: 1024,
+        maxHeight: 1024,
+        quality: 0.7,
+        outputType: "image/jpeg",
+      });
 
-    setQualityResult(null);
-    setQualityError(null);
-    setBgError(null);
-    setGeneratedArtUrl(null);
-    setArtError(null);
-    setGenerationCount(0);
-    setSliderValue(50);
-    setArtworkId(null);
-    setSaveArtworkError(null);
-    setCurrentStep(1);
+      // Store compressed version as our source-of-truth base64
+      setCompressedImageBase64(compressedDataUrl);
+
+      // Use compressed for preview
+      setPreviewUrl(compressedDataUrl);
+      setProcessedUrl(null);
+
+      // Reset everything else as before
+      setQualityResult(null);
+      setQualityError(null);
+      setBgError(null);
+      setGeneratedArtUrl(null);
+      setArtError(null);
+      setGenerationCount(0);
+      setSliderValue(50);
+      setArtworkId(null);
+      setSaveArtworkError(null);
+      setCurrentStep(1);
+    } catch (err) {
+      console.error("Failed to compress uploaded image:", err);
+      const fallbackUrl = URL.createObjectURL(file);
+      setPreviewUrl(fallbackUrl);
+    }
   }
 
   function handleStyleClick(id: StyleId) {
@@ -269,7 +411,11 @@ export default function HomePage() {
       setQualityResult(null);
       setQualityError(null);
 
-      const base64 = await fileToBase64(selectedFile);
+      const base64 =
+        processedUrl && processedUrl.startsWith("data:image")
+          ? processedUrl
+          : compressedImageBase64 ??
+            (await fileToBase64(selectedFile));
 
       const res = await fetch("/api/photo-quality", {
         method: "POST",
@@ -309,12 +455,13 @@ export default function HomePage() {
       setIsRemovingBg(true);
       setBgError(null);
 
-      const base64 = await fileToBase64(selectedFile);
+      const base64Source =
+        compressedImageBase64 ?? (await fileToBase64(selectedFile));
 
       const res = await fetch("/api/remove-background", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageBase64: base64 }),
+        body: JSON.stringify({ imageBase64: base64Source }),
       });
 
       const json = await res.json();
@@ -361,17 +508,32 @@ export default function HomePage() {
 
       let imageBase64: string;
 
+      // 1) Prefer already processed (bg-removed) image if available
       if (processedUrl && processedUrl.startsWith("data:image")) {
         imageBase64 = processedUrl;
       } else {
+        // 2) Otherwise use compressed upload (or compress on the fly as fallback)
+        const base64Source =
+          compressedImageBase64 ??
+          (await compressImageToDataUrl(selectedFile, {
+            maxWidth: 1024,
+            maxHeight: 1024,
+            quality: 0.7,
+            outputType: "image/jpeg",
+          }));
+
+        if (!compressedImageBase64) {
+          setCompressedImageBase64(base64Source);
+        }
+
         try {
           setGenerateProgress(20);
-          const base64Original = await fileToBase64(selectedFile);
 
+          // Use compressed source for background removal inside generate
           const resBg = await fetch("/api/remove-background", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ imageBase64: base64Original }),
+            body: JSON.stringify({ imageBase64: base64Source }),
           });
 
           const jsonBg = await resBg.json();
@@ -383,21 +545,40 @@ export default function HomePage() {
             typeof jsonBg.imageBase64 !== "string"
           ) {
             console.warn(
-              "Photo optimisation failed in generate, falling back to original."
+              "Photo optimisation failed in generate, falling back to compressed source."
             );
-            imageBase64 = base64Original;
+            imageBase64 = base64Source;
           } else {
             imageBase64 = jsonBg.imageBase64;
             setProcessedUrl(jsonBg.imageBase64);
           }
         } catch (err) {
           console.error(
-            "Error auto-preparing photo in generate, falling back to original:",
+            "Error auto-preparing photo in generate, falling back to compressed source:",
             err
           );
-          const base64Original = await fileToBase64(selectedFile);
-          imageBase64 = base64Original;
+          imageBase64 = base64Source;
         }
+      }
+
+      // 🔽 FINAL SAFETY NET: compress whatever we ended up with before /api/generate-art
+      try {
+        const compressedForGenerate = await compressBase64Image(imageBase64, {
+          maxWidth: 800,
+          maxHeight: 800,
+          quality: 0.65,
+          outputType: "image/jpeg",
+        });
+        console.log(
+          "Final imageBase64 length for /api/generate-art:",
+          compressedForGenerate.length
+        );
+        imageBase64 = compressedForGenerate;
+      } catch (err) {
+        console.warn(
+          "Failed to compress base64 before /api/generate-art, using original:",
+          err
+        );
       }
 
       setGenerateProgress(55);
@@ -411,10 +592,20 @@ export default function HomePage() {
         }),
       });
 
+      if (!res.ok) {
+        const text = await res.text();
+        console.error("Generate-art error:", res.status, text);
+        setArtError(
+          "Something went wrong while generating the artwork. Please try again."
+        );
+        setGenerateProgress(0);
+        return;
+      }
+
       const json = await res.json();
       console.log("Generate art result:", json);
 
-      if (!res.ok || json.error) {
+      if (json.error) {
         setArtError(
           json.error ||
             "Something went wrong while generating the artwork. Please try again."
