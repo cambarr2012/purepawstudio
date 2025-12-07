@@ -13,7 +13,6 @@ interface CreateOrderBody {
   city?: string;
   postcode?: string;
   country?: string;
-  // keep it loose – extra fields from the form are fine
   [key: string]: unknown;
 }
 
@@ -72,9 +71,7 @@ export async function POST(req: NextRequest) {
     // 🔥 Lazy import Stripe so this route never becomes edge by accident
     const StripeModule = await import("stripe");
     const Stripe = StripeModule.default;
-    const stripe = new Stripe(stripeSecretKey, {
-      apiVersion: "2023-10-16",
-    });
+    const stripe = new Stripe(stripeSecretKey); // no apiVersion to satisfy TS
 
     // Generate a simple order id for metadata – we’re not hitting Prisma
     const orderId = `ord_${Math.random().toString(16).slice(2, 10)}`;
