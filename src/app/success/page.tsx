@@ -39,8 +39,8 @@ export default async function SuccessPage({
 }) {
   const sessionId = searchParams?.session_id;
 
+  // 1) No session_id in URL at all
   if (!sessionId) {
-    // No session id in URL at all
     return (
       <main className="min-h-screen bg-slate-950 text-slate-50 flex items-center justify-center">
         <div className="max-w-md text-center px-6">
@@ -65,23 +65,58 @@ export default async function SuccessPage({
     );
   }
 
+  // 2) We have a session_id – look up the Stripe Checkout Session on the server
   const session = await fetchStripeSession(sessionId);
 
-  const metadata = (session?.metadata ??
+  if (!session) {
+    // Could not load the session from Stripe
+    return (
+      <main className="min-h-screen bg-slate-950 text-slate-50 flex items-center justify-center">
+        <div className="max-w-md text-center px-6">
+          <h1 className="text-2xl md:text-3xl font-semibold mb-3 text-teal-300">
+            Payment successful (Stripe confirmed) 🎉
+          </h1>
+          <p className="text-sm text-slate-300 mb-4">
+            We couldn&apos;t load the detailed payment information from Stripe
+            just now.
+          </p>
+          <p className="text-xs text-slate-500 mb-6">
+            Don&apos;t worry — your card was charged successfully. If you need
+            help finding your order, contact support with your email and the
+            approximate time of payment.
+          </p>
+          <Link
+            href="/"
+            className="inline-flex items-center justify-center rounded-full bg-teal-400 px-4 py-2 text-xs font-medium text-slate-950 hover:bg-teal-300 transition"
+          >
+            Return to the studio
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
+  // 3) Extract metadata and fall back to the Stripe session ID as a reference
+  const metadata = (session.metadata ??
     {}) as Record<string, string | undefined>;
 
-  const orderId =
-    metadata.orderId ||
-    metadata.order_id ||
-    session?.client_reference_id ||
-    null;
+  const orderIdFromMetadata =
+    metadata.orderId || metadata.order_id || undefined;
 
-  const artworkId = metadata.artworkId || metadata.artwork_id || null;
+  const artworkId =
+    metadata.artworkId || metadata.artwork_id || undefined;
+
+  const stripeSessionId = session.id ?? sessionId;
 
   const customerEmail =
-    (session?.customer_details?.email as string | null) ?? null;
+    (session.customer_details?.email as string | null) ??
+    (session.customer_email as string | null) ??
+    null;
 
-  const hasReference = !!orderId || !!artworkId;
+  // Treat the Stripe session id as a valid payment reference if we have nothing else
+  const primaryOrderReference = orderIdFromMetadata || stripeSessionId || null;
+
+  const hasReference = !!primaryOrderReference || !!artworkId;
 
   return (
     <main className="min-h-screen bg-slate-950 text-slate-50 flex items-center justify-center">
@@ -101,14 +136,28 @@ export default async function SuccessPage({
             </p>
 
             <div className="mt-4 inline-flex flex-col gap-2 items-start mx-auto text-left bg-slate-900/70 border border-slate-700 rounded-xl px-4 py-3 text-xs">
-              {orderId && (
+              {primaryOrderReference && (
                 <p>
                   <span className="font-semibold text-slate-200">
                     Order reference:
                   </span>{" "}
-                  <span className="font-mono text-slate-300">{orderId}</span>
+                  <span className="font-mono text-slate-300">
+                    {primaryOrderReference}
+                  </span>
                 </p>
               )}
+
+              {orderIdFromMetadata && stripeSessionId && orderIdFromMetadata !== stripeSessionId && (
+                <p>
+                  <span className="font-semibold text-slate-200">
+                    Internal order ID:
+                  </span>{" "}
+                  <span className="font-mono text-slate-300">
+                    {orderIdFromMetadata}
+                  </span>
+                </p>
+              )}
+
               {artworkId && (
                 <p>
                   <span className="font-semibold text-slate-200">
@@ -119,6 +168,7 @@ export default async function SuccessPage({
                   </span>
                 </p>
               )}
+
               {customerEmail && (
                 <p className="text-slate-400">
                   A confirmation has been sent to{" "}
