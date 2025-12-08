@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, ChangeEvent } from "react";
+import { useState, ChangeEvent, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -285,6 +285,7 @@ function MugPreview({ imageUrl, hasGeneratedArt, styleId }: MugPreviewProps) {
 
 export default function HomePage() {
   const router = useRouter();
+  const step1Ref = useRef<HTMLDivElement | null>(null);
 
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
 
@@ -778,19 +779,42 @@ export default function HomePage() {
   const stepLabelClass = (active: boolean) =>
     `text-[11px] ${active ? "text-teal-200" : "text-slate-400"}`;
 
+  // Overall flow progress (Upload → Quality → Generate → Checkout)
+  let overallStep = 1;
+  if (previewUrl) overallStep = 1;
+  if (qualityResult && qualityResult.status !== "bad") overallStep = 2;
+  if (generatedArtUrl) overallStep = 3;
+  if (canGoToCheckout) overallStep = 4;
+  const overallProgress = ((overallStep - 1) / 3) * 100;
+
+  const generationChecklist = [
+    {
+      label: "Preparing your photo & cleaning the background",
+      minStage: 1,
+    },
+    { label: "Applying your chosen style", minStage: 2 },
+    { label: "Finalising print-ready file & preview", minStage: 3 },
+  ];
+
+  function scrollToStep1() {
+    if (step1Ref.current) {
+      step1Ref.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }
+
   return (
     <main className="min-h-screen bg-slate-950 text-slate-50">
       {/* Background gradient */}
       <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top,_rgba(45,212,191,0.12)_0,transparent_55%),radial-gradient(circle_at_bottom,_rgba(15,23,42,1)_0,rgba(15,23,42,1)_55%)]" />
 
-      <div className="w-full max-w-6xl mx-auto px-4 py-10 md:py-12">
+      <div className="w-full max-w-6xl mx-auto px-4 py-8 md:py-12">
         {/* Top nav with logo + links */}
-        <div className="mb-6 flex items-center justify-center sm:justify-between gap-6 rounded-full border border-slate-800/80 bg-slate-950/80 px-6 md:px-8 py-3 md:py-3.5 backdrop-blur-sm shadow-[0_18px_40px_rgba(0,0,0,0.75)]">
+        <div className="mb-5 flex items-center justify-center sm:justify-between gap-6 rounded-full border border-slate-800/80 bg-slate-950/80 px-6 md:px-8 py-3 md:py-3.5 backdrop-blur-sm shadow-[0_18px_40px_rgba(0,0,0,0.75)]">
           <div className="flex items-center justify-center sm:justify-start gap-3">
             <img
               src="/purepawstudio-logo.png"
               alt="PurePawStudio logo"
-              className="h-16 md:h-20 w-auto object-contain select-none rounded-xl"
+              className="h-14 md:h-20 w-auto object-contain select-none rounded-xl"
             />
           </div>
 
@@ -813,11 +837,11 @@ export default function HomePage() {
           </nav>
         </div>
 
-        <header className="mb-6 text-center">
-          <p className="text-[11px] uppercase tracking-[0.25em] text-teal-300/80 mb-2">
+        <header className="mb-5 text-center">
+          <p className="hidden sm:block text-[11px] uppercase tracking-[0.25em] text-teal-300/80 mb-2">
             AI PET FLASK STUDIO
           </p>
-          <h1 className="text-3xl md:text-4xl font-semibold mb-3 tracking-tight">
+          <h1 className="text-3xl md:text-4xl font-semibold mb-2 tracking-tight">
             Turn your pet into premium flask art.
           </h1>
 
@@ -830,14 +854,97 @@ export default function HomePage() {
             </div>
           </div>
 
-          <p className="text-slate-300 max-w-2xl mx-auto text-sm md:text-base">
+          {/* Desktop/Tablet subcopy */}
+          <p className="hidden sm:block text-slate-300 max-w-2xl mx-auto text-sm md:text-base">
             Upload a photo, let our AI clean and stylise it, and preview your
             custom stainless steel flask before heading to secure checkout.
           </p>
+          {/* Mobile subcopy (shorter) */}
+          <p className="sm:hidden text-slate-300 max-w-md mx-auto text-sm">
+            Upload your pet photo and get instant AI-powered flask art you can
+            preview before checkout.
+          </p>
+
+          {/* Mobile: start here button */}
+          <div className="mt-4 sm:hidden flex justify-center">
+            <button
+              type="button"
+              onClick={scrollToStep1}
+              className="inline-flex items-center gap-2 rounded-full bg-teal-400 text-slate-900 text-xs font-medium px-4 py-2 shadow-[0_10px_30px_rgba(45,212,191,0.4)]"
+            >
+              <span>Start your flask</span>
+              <span className="text-[13px]">↓</span>
+            </button>
+          </div>
         </header>
 
-        {/* Mobile link row */}
-        <div className="mt-1 mb-6 flex sm:hidden justify-center gap-4 text-[11px] text-slate-400">
+        {/* Step indicator + overall progress */}
+        <div className="mb-6 space-y-3">
+          <div className="flex flex-wrap items-center justify-center gap-4 text-[11px]">
+            <div className="flex items-center gap-2">
+              <span
+                className={`flex h-6 w-6 items-center justify-center rounded-full border text-xs ${
+                  step1Active || step2Active
+                    ? "border-teal-400 bg-teal-500/10 text-teal-200"
+                    : "border-slate-600 bg-slate-900 text-slate-300"
+                }`}
+              >
+                1
+              </span>
+              <span className={stepLabelClass(step1Active || step2Active)}>
+                Upload &amp; quality check
+              </span>
+            </div>
+            <div className="hidden sm:block h-px w-6 bg-slate-700" />
+            <div className="flex items-center gap-2">
+              <span
+                className={`flex h-6 w-6 items-center justify-center rounded-full border text-xs ${
+                  step2Active
+                    ? "border-teal-400 bg-teal-500/10 text-teal-200"
+                    : "border-slate-600 bg-slate-900 text-slate-300"
+                }`}
+              >
+                2
+              </span>
+              <span className={stepLabelClass(step2Active)}>
+                Style &amp; AI artwork
+              </span>
+            </div>
+            <div className="hidden sm:block h-px w-6 bg-slate-700" />
+            <div className="flex items-center gap-2">
+              <span
+                className={`flex h-6 w-6 items-center justify-center rounded-full border text-xs ${
+                  canGoToCheckout
+                    ? "border-teal-400 bg-teal-500/10 text-teal-200"
+                    : "border-slate-600 bg-slate-900 text-slate-300"
+                }`}
+              >
+                3
+              </span>
+              <span className={stepLabelClass(canGoToCheckout)}>
+                Secure checkout
+              </span>
+            </div>
+          </div>
+
+          {/* Mobile condensed text */}
+          <p className="sm:hidden text-[11px] text-slate-500 text-center">
+            Step{" "}
+            <span className="font-semibold text-slate-200">{overallStep}</span>{" "}
+            of 3
+          </p>
+
+          {/* Overall progress bar */}
+          <div className="h-1.5 w-full max-w-md mx-auto rounded-full bg-slate-900 border border-slate-800 overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-teal-300 via-teal-400 to-emerald-300 transition-all duration-300"
+              style={{ width: `${Math.max(4, Math.min(overallProgress, 100))}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Mobile link row (kept but lighter) */}
+        <div className="mt-1 mb-5 flex sm:hidden justify-center gap-4 text-[11px] text-slate-500">
           <Link href="/shipping" className="hover:text-slate-100 transition">
             Shipping
           </Link>
@@ -851,62 +958,22 @@ export default function HomePage() {
           </Link>
         </div>
 
-        {/* Step indicator */}
-        <div className="mb-8 flex flex-wrap items-center justify-center gap-4 text-[11px]">
-          <div className="flex items-center gap-2">
-            <span
-              className={`flex h-6 w-6 items-center justify-center rounded-full border text-xs ${
-                step1Active || step2Active
-                  ? "border-teal-400 bg-teal-500/10 text-teal-200"
-                  : "border-slate-600 bg-slate-900 text-slate-300"
-              }`}
-            >
-              1
-            </span>
-            <span className={stepLabelClass(step1Active || step2Active)}>
-              Photo &amp; quality check
-            </span>
-          </div>
-          <div className="h-px w-6 bg-slate-700" />
-          <div className="flex items-center gap-2">
-            <span
-              className={`flex h-6 w-6 items-center justify-center rounded-full border text-xs ${
-                step2Active
-                  ? "border-teal-400 bg-teal-500/10 text-teal-200"
-                  : "border-slate-600 bg-slate-900 text-slate-300"
-              }`}
-            >
-              2
-            </span>
-            <span className={stepLabelClass(step2Active)}>
-              Style &amp; AI artwork
-            </span>
-          </div>
-          <div className="h-px w-6 bg-slate-700" />
-          <div className="flex items-center gap-2">
-            <span
-              className={`flex h-6 w-6 items-center justify-center rounded-full border text-xs ${
-                canGoToCheckout
-                  ? "border-teal-400 bg-teal-500/10 text-teal-200"
-                  : "border-slate-600 bg-slate-900 text-slate-300"
-              }`}
-            >
-              3
-            </span>
-            <span className={stepLabelClass(canGoToCheckout)}>
-              Secure checkout (next page)
-            </span>
-          </div>
-        </div>
-
         <div className="grid gap-8 md:grid-cols-[1.2fr,1fr] items-start">
           {/* Left: controls */}
-          <section className="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 md:p-6 space-y-6 shadow-[0_20px_60px_rgba(0,0,0,0.6)]">
+          <section
+            ref={step1Ref}
+            className="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 md:p-6 space-y-6 shadow-[0_20px_60px_rgba(0,0,0,0.6)]"
+          >
             {/* STEP 1 */}
             <div>
               <h2 className="text-lg font-medium mb-2">
                 Step 1 · Upload your pet photo
               </h2>
+
+              <p className="text-[11px] text-slate-400 mb-2">
+                Works best with a sharp, front-facing photo of your pet&apos;s
+                face. Phone photos are perfect.
+              </p>
 
               <div className="space-y-2">
                 <h3 className="text-sm font-medium text-slate-100">
@@ -917,8 +984,7 @@ export default function HomePage() {
                     Click to upload
                   </span>
                   <span className="text-[11px] text-slate-500 max-w-xs">
-                    Use a sharp, front-facing photo of your pet&apos;s face.
-                    Phone photos work perfectly.
+                    Make sure your pet&apos;s face is visible and in focus.
                   </span>
                   <input
                     type="file"
@@ -929,8 +995,7 @@ export default function HomePage() {
                 </label>
                 {previewUrl && (
                   <p className="text-[11px] text-teal-300 mt-1">
-                    Photo selected ✓ — run a quick quality check before
-                    generating art.
+                    Photo selected ✓ — next, run the quick quality check below.
                   </p>
                 )}
 
@@ -944,6 +1009,9 @@ export default function HomePage() {
               </div>
 
               <div className="pt-4 border-t border-slate-800 mt-4">
+                <h3 className="text-sm font-medium text-slate-100 mb-2">
+                  Step 2 · Run a quick photo check
+                </h3>
                 <button
                   className="w-full rounded-xl bg-teal-400 px-4 py-3 text-sm font-medium text-slate-950 hover:bg-teal-300 transition disabled:opacity-60 disabled:hover:bg-teal-400"
                   onClick={handleCheckQuality}
@@ -972,20 +1040,27 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* STEP 2 */}
+            {/* STEP 3 */}
             <div
               className={`pt-4 border-t border-slate-800 ${
                 step1Active ? "opacity-40 pointer-events-none" : ""
               }`}
             >
-              <h2 className="text-lg font-medium mb-3">
-                Step 2 · Style &amp; AI artwork
-              </h2>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-medium">
+                  Step 3 · Choose style &amp; generate AI art
+                </h2>
+                {step1Active && (
+                  <span className="text-[10px] text-amber-300">
+                    Run the quality check above to unlock this step.
+                  </span>
+                )}
+              </div>
 
               {!qualityResult && previewUrl && (
                 <p className="mb-3 text-[11px] text-amber-300">
-                  Run the photo quality check above to unlock style selection
-                  and AI generation.
+                  Run the photo quality check first so we can correctly detect
+                  your pet&apos;s face.
                 </p>
               )}
 
@@ -1054,13 +1129,26 @@ export default function HomePage() {
                   type="button"
                   onClick={handleGenerateArt}
                   disabled={disableGenerateButton}
-                  className="w-full rounded-xl bg-teal-400 px-4 py-3 text-sm font-medium text-slate-950 hover:bg-teal-300 transition disabled:opacity-60"
+                  className={`w-full rounded-xl px-4 py-3 text-sm font-medium text-slate-950 transition disabled:opacity-60 ${
+                    isGenerating
+                      ? "bg-gradient-to-r from-teal-300 via-teal-400 to-teal-200 shadow-[0_0_25px_rgba(45,212,191,0.5)]"
+                      : "bg-teal-400 hover:bg-teal-300"
+                  }`}
                 >
                   {generateButtonLabel}
                 </button>
 
+                <p className="text-[11px] text-teal-300 font-medium">
+                  Typical time:{" "}
+                  <span className="font-semibold">20–40 seconds</span> depending
+                  on your photo and traffic.
+                </p>
+
                 {isGenerating && (
-                  <div className="mt-2 space-y-2">
+                  <div className="mt-2 space-y-3 rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-3">
+                    <p className="text-[11px] text-slate-200 font-medium">
+                      Generating your pet art… please keep this tab open.
+                    </p>
                     <div className="h-1.5 w-full rounded-full bg-slate-800 overflow-hidden">
                       <div
                         className="h-full bg-gradient-to-r from-teal-300 via-teal-400 to-teal-200 transition-all duration-300"
@@ -1083,15 +1171,37 @@ export default function HomePage() {
                         3 · Saving print file
                       </span>
                     </div>
+
+                    <ul className="mt-2 space-y-1 text-[11px] text-slate-400">
+                      {generationChecklist.map((item, idx) => {
+                        const active = generationStage >= item.minStage;
+                        return (
+                          <li key={idx} className="flex items-start gap-1.5">
+                            <span
+                              className={
+                                active ? "text-teal-300 mt-[1px]" : "mt-[1px]"
+                              }
+                            >
+                              {active ? "✓" : "•"}
+                            </span>
+                            <span
+                              className={
+                                active ? "text-slate-100" : "text-slate-400"
+                              }
+                            >
+                              {item.label}
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ul>
                   </div>
                 )}
 
                 <p className="mt-1 text-[11px] text-slate-500">
                   We analyse your photo, keep your pet&apos;s unique face and
                   markings, then apply the chosen style and prepare a
-                  print-ready design for your flask. Most designs are ready in
-                  around <span className="font-medium">20–40 seconds</span>,
-                  depending on photo complexity and traffic.
+                  print-ready design for your flask.
                 </p>
                 <p className="text-[11px] text-slate-500">
                   You can generate up to{" "}
@@ -1250,7 +1360,7 @@ export default function HomePage() {
 
             <div className="mt-6 pt-4 border-t border-slate-800">
               <h3 className="text-xs font-medium text-slate-200 mb-2">
-                Step 3 · Secure checkout
+                Step 4 · Secure checkout
               </h3>
               <p className="text-[11px] text-slate-500 mb-3">
                 Happy with your preview? Continue to our secure checkout page
