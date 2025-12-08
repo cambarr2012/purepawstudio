@@ -861,11 +861,12 @@ export default function HomePage() {
           src="/purepawstudio-logo.png"
           alt="PurePawStudio logo"
           className="
-          h-12 w-auto                     /* mobile: solid size, not tiny */
-          sm:h-20 sm:w-auto              /* desktop: keep big & clean */
+          h-16 w-auto                   /* mobile: 1.5× bigger */
+          sm:h-20 sm:w-auto            /* desktop: unchanged */
           object-contain select-none rounded-xl
           "
           />
+
 
 
           </div>
