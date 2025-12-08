@@ -151,7 +151,11 @@ type SaveArtworkResponse = {
   createdAt: string;
 };
 
-const MAX_GENERATIONS_PER_PHOTO = 5;
+type GeneratedDesign = {
+  imageBase64: string;
+};
+
+const MAX_GENERATIONS_PER_PHOTO = 3;
 
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -211,6 +215,19 @@ async function standardizeArtForFlask(imageBase64: string): Promise<string> {
   });
 }
 
+function getStyleLabel(styleId: StyleId): string {
+  switch (styleId) {
+    case "gangster":
+      return "Gangster";
+    case "cartoon":
+      return "Disney";
+    case "girlboss":
+      return "Girl boss";
+    default:
+      return styleId;
+  }
+}
+
 interface MugPreviewProps {
   imageUrl: string | null;
   hasGeneratedArt: boolean;
@@ -225,7 +242,7 @@ function MugPreview({ imageUrl, hasGeneratedArt, styleId }: MugPreviewProps) {
   const PRINT_AREA_TOP_PERCENT = 20;
   const PRINT_AREA_LEFT_PERCENT = 29;
 
-  const styleLabel = styleId;
+  const styleLabel = getStyleLabel(styleId);
 
   return (
     <div className="w-full flex-1 flex items-center justify-center">
@@ -276,7 +293,7 @@ function MugPreview({ imageUrl, hasGeneratedArt, styleId }: MugPreviewProps) {
         <div className="absolute bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-slate-950/90 text-[10px] font-medium text-slate-100 border border-slate-700/70 backdrop-blur flex items-center gap-1 pointer-events-none">
           <span>{hasGeneratedArt ? "Final AI art" : "No art yet"}</span>
           <span className="opacity-40">·</span>
-          <span className="capitalize text-teal-300">{styleLabel}</span>
+          <span className="text-teal-300">{styleLabel}</span>
         </div>
       </div>
     </div>
@@ -308,9 +325,14 @@ export default function HomePage() {
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [generateProgress, setGenerateProgress] = useState<number>(0);
-  const [generatedArtUrl, setGeneratedArtUrl] = useState<string | null>(null);
   const [artError, setArtError] = useState<string | null>(null);
-  const [generationCount, setGenerationCount] = useState(0);
+
+  const [generatedDesigns, setGeneratedDesigns] = useState<GeneratedDesign[]>(
+    []
+  );
+  const [selectedDesignIndex, setSelectedDesignIndex] = useState<number | null>(
+    null
+  );
 
   const [sliderValue, setSliderValue] = useState(50);
 
@@ -318,11 +340,18 @@ export default function HomePage() {
   const [isSavingArtwork, setIsSavingArtwork] = useState(false);
   const [saveArtworkError, setSaveArtworkError] = useState<string | null>(null);
 
-  async function saveArtwork(imageBase64: string) {
+  const generationCount = generatedDesigns.length;
+  const hasArt = generationCount > 0;
+
+  const selectedDesign =
+    selectedDesignIndex != null && generatedDesigns[selectedDesignIndex]
+      ? generatedDesigns[selectedDesignIndex]
+      : null;
+
+  async function saveArtwork(imageBase64: string): Promise<string | null> {
     try {
       setIsSavingArtwork(true);
       setSaveArtworkError(null);
-      setArtworkId(null);
 
       const res = await fetch("/api/artworks", {
         method: "POST",
@@ -337,25 +366,49 @@ export default function HomePage() {
       if (!res.ok) {
         const text = await res.text();
         console.error("Failed to save artwork:", text);
-        throw new Error("Failed to save artwork");
+        setSaveArtworkError(
+          "We generated your art, but couldn’t save it yet. Please try again."
+        );
+        return null;
       }
 
       const json = (await res.json()) as SaveArtworkResponse;
-      setArtworkId(json.artworkId);
       console.log("Artwork saved:", json);
+      return json.artworkId;
     } catch (err) {
       console.error("Error saving artwork:", err);
       setSaveArtworkError(
-        "We generated your art, but couldn’t save it yet. You can try again."
+        "We generated your art, but couldn’t save it yet. Please try again."
       );
+      return null;
     } finally {
       setIsSavingArtwork(false);
     }
   }
 
-  function handleGoToCheckout() {
-    if (!artworkId) return;
-    router.push(`/checkout?artworkId=${encodeURIComponent(artworkId)}`);
+  async function handleGoToCheckout() {
+    if (!selectedDesign) {
+      return;
+    }
+    if (isSavingArtwork || isGenerating) {
+      return;
+    }
+
+    setSaveArtworkError(null);
+
+    let finalArtworkId = artworkId;
+
+    if (!finalArtworkId) {
+      const savedId = await saveArtwork(selectedDesign.imageBase64);
+      if (!savedId) {
+        // Error is already shown via saveArtwork
+        return;
+      }
+      finalArtworkId = savedId;
+      setArtworkId(savedId);
+    }
+
+    router.push(`/checkout?artworkId=${encodeURIComponent(finalArtworkId)}`);
   }
 
   async function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
@@ -380,13 +433,13 @@ export default function HomePage() {
       setPreviewUrl(compressedDataUrl);
       setProcessedUrl(null);
 
-      // Reset everything else as before
+      // Reset everything else
       setQualityResult(null);
       setQualityError(null);
       setBgError(null);
-      setGeneratedArtUrl(null);
       setArtError(null);
-      setGenerationCount(0);
+      setGeneratedDesigns([]);
+      setSelectedDesignIndex(null);
       setSliderValue(50);
       setArtworkId(null);
       setSaveArtworkError(null);
@@ -494,7 +547,7 @@ export default function HomePage() {
 
     if (generationCount >= MAX_GENERATIONS_PER_PHOTO) {
       setArtError(
-        "You’ve reached the maximum number of style variations for this photo."
+        "You’ve reached the maximum number of designs for this photo."
       );
       return;
     }
@@ -502,7 +555,6 @@ export default function HomePage() {
     try {
       setIsGenerating(true);
       setArtError(null);
-      setGeneratedArtUrl(null);
       setGenerateProgress(5);
       setArtworkId(null);
       setSaveArtworkError(null);
@@ -540,7 +592,11 @@ export default function HomePage() {
           const jsonBg = await resBg.json();
           console.log("Auto photo optimisation in generate:", jsonBg);
 
-          if (!resBg.ok || jsonBg.error || typeof jsonBg.imageBase64 !== "string") {
+          if (
+            !resBg.ok ||
+            jsonBg.error ||
+            typeof jsonBg.imageBase64 !== "string"
+          ) {
             console.warn(
               "Photo optimisation failed in generate, falling back to compressed source."
             );
@@ -614,11 +670,13 @@ export default function HomePage() {
       if (typeof json.imageBase64 === "string") {
         setGenerateProgress(80);
         const standardized = await standardizeArtForFlask(json.imageBase64);
-        setGeneratedArtUrl(standardized);
-        setGenerationCount((count) => count + 1);
-        setSliderValue(50);
 
-        await saveArtwork(standardized);
+        setGeneratedDesigns((prev) => [...prev, { imageBase64: standardized }]);
+        // If nothing selected yet, auto-select the first design
+        setSelectedDesignIndex((prev) =>
+          prev == null ? 0 : prev
+        );
+        setSliderValue(50);
 
         setGenerateProgress(100);
       } else {
@@ -733,32 +791,26 @@ export default function HomePage() {
     !!selectedFile && !!qualityResult && qualityResult.status !== "bad";
 
   const sourcePreview = processedUrl ?? previewUrl;
-  const flaskPreview = generatedArtUrl;
+  const flaskPreview = selectedDesign?.imageBase64 ?? null;
 
   const remainingGenerations =
     MAX_GENERATIONS_PER_PHOTO - generationCount >= 0
       ? MAX_GENERATIONS_PER_PHOTO - generationCount
       : 0;
 
-  const hasArt = !!generatedArtUrl;
-
   const generateButtonLabel = isGenerating
     ? "Generating your pet art…"
     : hasArt
     ? remainingGenerations > 0
-      ? `Regenerate style (${remainingGenerations} left)`
-      : "Regeneration limit reached"
+      ? `Generate another design (${remainingGenerations} left)`
+      : "Design limit reached"
     : "Generate AI artwork for your flask";
 
   const disableGenerateButton =
     !canGenerate || isGenerating || generationCount >= MAX_GENERATIONS_PER_PHOTO;
 
   const canGoToCheckout =
-    !!artworkId &&
-    !!generatedArtUrl &&
-    !isSavingArtwork &&
-    !saveArtworkError &&
-    !artError;
+    !!selectedDesign && !isGenerating && !isSavingArtwork;
 
   const step1Active = currentStep === 1;
   const step2Active = currentStep === 2;
@@ -783,7 +835,7 @@ export default function HomePage() {
   let overallStep = 1;
   if (previewUrl) overallStep = 1;
   if (qualityResult && qualityResult.status !== "bad") overallStep = 2;
-  if (generatedArtUrl) overallStep = 3;
+  if (hasArt) overallStep = 3;
   if (canGoToCheckout) overallStep = 4;
   const overallProgress = ((overallStep - 1) / 3) * 100;
 
@@ -801,6 +853,8 @@ export default function HomePage() {
       step1Ref.current.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }
+
+  const selectedStyleLabel = getStyleLabel(styleId);
 
   return (
     <main className="min-h-screen bg-slate-950 text-slate-50">
@@ -931,7 +985,7 @@ export default function HomePage() {
           <p className="sm:hidden text-[11px] text-slate-500 text-center">
             Step{" "}
             <span className="font-semibold text-slate-200">{overallStep}</span>{" "}
-            of 3
+            of 4
           </p>
 
           {/* Overall progress bar */}
@@ -1099,9 +1153,9 @@ export default function HomePage() {
                         : inactiveStyleClasses
                     }`}
                   >
-                    Cartoon
+                    Disney
                     <span className="block text-[10px] text-slate-400">
-                      Classic colourful
+                      Disney-style colourful
                     </span>
                   </button>
                   <button
@@ -1168,7 +1222,7 @@ export default function HomePage() {
                         2 · Applying style
                       </span>
                       <span className={getStageLabelClass(3)}>
-                        3 · Saving print file
+                        3 · Finalising preview
                       </span>
                     </div>
 
@@ -1208,32 +1262,15 @@ export default function HomePage() {
                   <span className="font-semibold">
                     {MAX_GENERATIONS_PER_PHOTO}
                   </span>{" "}
-                  style variations per photo during preview.
+                  designs per photo and pick your favourite before checkout.
                 </p>
                 {artError && (
                   <p className="text-[11px] text-rose-300">{artError}</p>
                 )}
-                {generatedArtUrl && !artError && (
+                {hasArt && !artError && (
                   <p className="text-[11px] text-teal-300">
-                    AI artwork generated ✓ — the flask on the right now shows
-                    your final design.
-                  </p>
-                )}
-                {generatedArtUrl && artworkId && !saveArtworkError && (
-                  <p className="text-[11px] text-teal-300">
-                    Design saved ✓ (Artwork ID:{" "}
-                    <span className="font-mono text-[10px]">{artworkId}</span>).
-                    You&apos;ll use this for checkout on the next page.
-                  </p>
-                )}
-                {isSavingArtwork && (
-                  <p className="text-[11px] text-slate-400">
-                    Saving your print-ready artwork…
-                  </p>
-                )}
-                {saveArtworkError && (
-                  <p className="text-[11px] text-rose-300">
-                    {saveArtworkError}
+                    Designs generated ✓ — use the panel on the right to preview
+                    and choose the one you love most.
                   </p>
                 )}
               </div>
@@ -1248,26 +1285,69 @@ export default function HomePage() {
 
             <MugPreview
               imageUrl={flaskPreview}
-              hasGeneratedArt={!!generatedArtUrl}
+              hasGeneratedArt={hasArt}
               styleId={styleId}
             />
 
             <p className="mt-4 text-[11px] text-slate-500">
               Selected style:{" "}
-              <span className="text-slate-200 font-medium capitalize">
-                {styleId}
+              <span className="text-slate-200 font-medium">
+                {selectedStyleLabel}
               </span>
             </p>
-            {generatedArtUrl && (
+            {hasArt && (
               <p className="mt-1 text-[11px] text-teal-300">
-                This artwork is what will be printed on your flask.
+                This is the design that will be printed on your flask once you
+                complete checkout.
               </p>
             )}
-            {!generatedArtUrl && (
+            {!hasArt && (
               <p className="mt-1 text-[11px] text-slate-500">
                 Once you generate AI art, your final flask preview will appear
                 here.
               </p>
+            )}
+
+            {/* Design gallery */}
+            {hasArt && (
+              <div className="mt-4 pt-3 border-t border-slate-800">
+                <h3 className="text-xs font-medium text-slate-200 mb-1.5">
+                  Your designs for this photo
+                </h3>
+                <p className="text-[10px] text-slate-500 mb-2">
+                  Tap a design to choose which one you&apos;d like printed.
+                  You can create up to {MAX_GENERATIONS_PER_PHOTO} designs.
+                </p>
+                <div className="flex gap-2">
+                  {generatedDesigns.map((design, idx) => {
+                    const selected = idx === selectedDesignIndex;
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setSelectedDesignIndex(idx)}
+                        className={`relative w-16 h-16 rounded-lg border overflow-hidden bg-slate-950 transition ${
+                          selected
+                            ? "border-teal-400 shadow-[0_0_18px_rgba(45,212,191,0.6)]"
+                            : "border-slate-700 hover:border-slate-500"
+                        }`}
+                      >
+                        <img
+                          src={design.imageBase64}
+                          alt={`Design ${idx + 1}`}
+                          className="w-full h-full object-contain"
+                        />
+                        <div className="absolute bottom-0 left-0 right-0 text-[9px] text-center bg-slate-950/80 text-slate-200 py-[1px]">
+                          {selected ? "Selected" : `Design ${idx + 1}`}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="mt-1 text-[10px] text-slate-500">
+                  Designs created: {generationCount} / {MAX_GENERATIONS_PER_PHOTO}
+                </p>
+              </div>
             )}
 
             <div className="mt-6 pt-4 border-t border-slate-800">
@@ -1301,7 +1381,7 @@ export default function HomePage() {
               </div>
             </div>
 
-            {sourcePreview && generatedArtUrl && (
+            {sourcePreview && selectedDesign && (
               <div className="mt-6 pt-4 border-t border-slate-800">
                 <h3 className="text-xs font-medium text-slate-200 mb-2">
                   Style before / after (preview only)
@@ -1321,7 +1401,7 @@ export default function HomePage() {
                       style={{ width: `${sliderValue}%` }}
                     >
                       <img
-                        src={generatedArtUrl}
+                        src={selectedDesign.imageBase64}
                         alt="After"
                         className="w-full h-full object-contain bg-slate-950 pointer-events-none select-none"
                       />
@@ -1363,8 +1443,8 @@ export default function HomePage() {
                 Step 4 · Secure checkout
               </h3>
               <p className="text-[11px] text-slate-500 mb-3">
-                Happy with your preview? Continue to our secure checkout page
-                to confirm your details and pay.
+                Happy with your chosen design? Continue to our secure checkout
+                page to confirm your details and pay.
               </p>
               <button
                 type="button"
@@ -1374,17 +1454,21 @@ export default function HomePage() {
               >
                 {canGoToCheckout
                   ? "Continue to checkout"
-                  : "Generate and save a design first"}
+                  : hasArt
+                  ? "Pick a design to continue"
+                  : "Generate and pick a design first"}
               </button>
-              {artworkId &&
-                !canGoToCheckout &&
-                !artError &&
-                !saveArtworkError && (
-                  <p className="mt-2 text-[11px] text-slate-500">
-                    We&apos;re just finishing up your design. Once it&apos;s
-                    fully ready, you&apos;ll be able to head to checkout.
-                  </p>
-                )}
+
+              {isSavingArtwork && (
+                <p className="mt-2 text-[11px] text-slate-400 text-center">
+                  Saving your print-ready artwork…
+                </p>
+              )}
+              {saveArtworkError && (
+                <p className="mt-2 text-[11px] text-rose-300 text-center">
+                  {saveArtworkError}
+                </p>
+              )}
 
               <p className="mt-3 text-[10px] text-slate-500 text-center">
                 Powered by{" "}
