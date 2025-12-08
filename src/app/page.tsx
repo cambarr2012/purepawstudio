@@ -293,7 +293,8 @@ export default function HomePage() {
   const [processedUrl, setProcessedUrl] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-  const [compressedImageBase64, setCompressedImageBase64] = useState<string | null>(null);
+  const [compressedImageBase64, setCompressedImageBase64] =
+    useState<string | null>(null);
 
   const [isChecking, setIsChecking] = useState(false);
   const [qualityResult, setQualityResult] = useState<QualityResult | null>(
@@ -414,8 +415,7 @@ export default function HomePage() {
       const base64 =
         processedUrl && processedUrl.startsWith("data:image")
           ? processedUrl
-          : compressedImageBase64 ??
-            (await fileToBase64(selectedFile));
+          : compressedImageBase64 ?? (await fileToBase64(selectedFile));
 
       const res = await fetch("/api/photo-quality", {
         method: "POST",
@@ -539,11 +539,7 @@ export default function HomePage() {
           const jsonBg = await resBg.json();
           console.log("Auto photo optimisation in generate:", jsonBg);
 
-          if (
-            !resBg.ok ||
-            jsonBg.error ||
-            typeof jsonBg.imageBase64 !== "string"
-          ) {
+          if (!resBg.ok || jsonBg.error || typeof jsonBg.imageBase64 !== "string") {
             console.warn(
               "Photo optimisation failed in generate, falling back to compressed source."
             );
@@ -779,6 +775,9 @@ export default function HomePage() {
   const getStageLabelClass = (stage: number) =>
     stage === generationStage ? "text-teal-300" : "text-slate-500";
 
+  const stepLabelClass = (active: boolean) =>
+    `text-[11px] ${active ? "text-teal-200" : "text-slate-400"}`;
+
   return (
     <main className="min-h-screen bg-slate-950 text-slate-50">
       {/* Background gradient */}
@@ -786,12 +785,12 @@ export default function HomePage() {
 
       <div className="w-full max-w-6xl mx-auto px-4 py-10 md:py-12">
         {/* Top nav with logo + links */}
-        <div className="mb-6 flex items-center justify-between gap-6 rounded-full border border-slate-800/80 bg-slate-950/80 px-7 py-2.5 backdrop-blur-sm shadow-[0_18px_40px_rgba(0,0,0,0.75)]">
-          <div className="flex items-center gap-3">
+        <div className="mb-6 flex items-center justify-center sm:justify-between gap-6 rounded-full border border-slate-800/80 bg-slate-950/80 px-6 md:px-8 py-3 md:py-3.5 backdrop-blur-sm shadow-[0_18px_40px_rgba(0,0,0,0.75)]">
+          <div className="flex items-center justify-center sm:justify-start gap-3">
             <img
               src="/purepawstudio-logo.png"
               alt="PurePawStudio logo"
-              className="h-12 md:h-14 w-auto object-contain select-none rounded-xl"
+              className="h-16 md:h-20 w-auto object-contain select-none rounded-xl"
             />
           </div>
 
@@ -807,7 +806,7 @@ export default function HomePage() {
             </Link>
             <Link
               href="/orders"
-              className="px-3 py-1 rounded-full bg-slate-800/80 text-slate-100 border border-slate-700/80 hover:bg-slate-700/80 transition"
+              className="px-3 py-1.5 rounded-full bg-slate-800/80 text-slate-100 border border-slate-700/80 hover:bg-slate-700/80 transition"
             >
               My orders
             </Link>
@@ -816,11 +815,21 @@ export default function HomePage() {
 
         <header className="mb-6 text-center">
           <p className="text-[11px] uppercase tracking-[0.25em] text-teal-300/80 mb-2">
-            AI Pet Flask Studio
+            AI PET FLASK STUDIO
           </p>
           <h1 className="text-3xl md:text-4xl font-semibold mb-3 tracking-tight">
             Turn your pet into premium flask art.
           </h1>
+
+          {/* Value / price chip */}
+          <div className="mb-3 flex justify-center">
+            <div className="inline-flex items-center rounded-full border border-slate-700/70 bg-slate-900/80 px-3 py-1 text-[11px] text-slate-200">
+              <span className="font-medium">From £19.99</span>
+              <span className="mx-1.5 text-slate-500">·</span>
+              <span className="text-slate-300/90">Ships from the UK</span>
+            </div>
+          </div>
+
           <p className="text-slate-300 max-w-2xl mx-auto text-sm md:text-base">
             Upload a photo, let our AI clean and stylise it, and preview your
             custom stainless steel flask before heading to secure checkout.
@@ -828,7 +837,7 @@ export default function HomePage() {
         </header>
 
         {/* Mobile link row */}
-        <div className="mb-6 flex sm:hidden justify-center gap-4 text-[11px] text-slate-400">
+        <div className="mt-1 mb-6 flex sm:hidden justify-center gap-4 text-[11px] text-slate-400">
           <Link href="/shipping" className="hover:text-slate-100 transition">
             Shipping
           </Link>
@@ -843,7 +852,7 @@ export default function HomePage() {
         </div>
 
         {/* Step indicator */}
-        <div className="mb-8 flex flex-wrap items-center justify-center gap-4 text-[11px] text-slate-400">
+        <div className="mb-8 flex flex-wrap items-center justify-center gap-4 text-[11px]">
           <div className="flex items-center gap-2">
             <span
               className={`flex h-6 w-6 items-center justify-center rounded-full border text-xs ${
@@ -854,7 +863,9 @@ export default function HomePage() {
             >
               1
             </span>
-            <span>Photo & quality check</span>
+            <span className={stepLabelClass(step1Active || step2Active)}>
+              Photo &amp; quality check
+            </span>
           </div>
           <div className="h-px w-6 bg-slate-700" />
           <div className="flex items-center gap-2">
@@ -867,7 +878,9 @@ export default function HomePage() {
             >
               2
             </span>
-            <span>Style & AI artwork</span>
+            <span className={stepLabelClass(step2Active)}>
+              Style &amp; AI artwork
+            </span>
           </div>
           <div className="h-px w-6 bg-slate-700" />
           <div className="flex items-center gap-2">
@@ -880,7 +893,9 @@ export default function HomePage() {
             >
               3
             </span>
-            <span>Secure checkout (next page)</span>
+            <span className={stepLabelClass(canGoToCheckout)}>
+              Secure checkout (next page)
+            </span>
           </div>
         </div>
 
@@ -964,7 +979,7 @@ export default function HomePage() {
               }`}
             >
               <h2 className="text-lg font-medium mb-3">
-                Step 2 · Style & AI artwork
+                Step 2 · Style &amp; AI artwork
               </h2>
 
               {!qualityResult && previewUrl && (
@@ -1074,7 +1089,9 @@ export default function HomePage() {
                 <p className="mt-1 text-[11px] text-slate-500">
                   We analyse your photo, keep your pet&apos;s unique face and
                   markings, then apply the chosen style and prepare a
-                  print-ready design for your flask.
+                  print-ready design for your flask. Most designs are ready in
+                  around <span className="font-medium">20–40 seconds</span>,
+                  depending on photo complexity and traffic.
                 </p>
                 <p className="text-[11px] text-slate-500">
                   You can generate up to{" "}
@@ -1116,7 +1133,7 @@ export default function HomePage() {
           {/* Right: previews + CTA */}
           <section className="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 md:p-6 flex flex-col shadow-[0_20px_60px_rgba(0,0,0,0.6)]">
             <h2 className="text-sm font-medium mb-4">
-              Live flask preview & studio previews
+              Live flask preview &amp; studio previews
             </h2>
 
             <MugPreview
@@ -1258,6 +1275,12 @@ export default function HomePage() {
                     fully ready, you&apos;ll be able to head to checkout.
                   </p>
                 )}
+
+              <p className="mt-3 text-[10px] text-slate-500 text-center">
+                Powered by{" "}
+                <span className="font-semibold text-slate-200">Stripe</span> ·
+                Encrypted checkout
+              </p>
             </div>
           </section>
         </div>
