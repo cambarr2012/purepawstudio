@@ -857,11 +857,16 @@ export default function HomePage() {
         {/* Top nav with logo + links */}
         <div className="mb-5 flex items-center justify-center sm:justify-between gap-6 rounded-full border border-slate-800/80 bg-slate-950/80 px-6 md:px-8 py-3 md:py-3.5 backdrop-blur-sm shadow-[0_18px_40px_rgba(0,0,0,0.75)]">
           <div className="flex items-center justify-center sm:justify-start gap-3 w-full sm:w-auto">
-            <img
-              src="/purepawstudio-logo.png"
-              alt="PurePawStudio logo"
-              className="w-[70%] max-w-[260px] h-auto sm:w-auto sm:h-20 object-contain select-none rounded-xl"
+           <img
+            src="/purepawstudio-logo.png"
+            alt="PurePawStudio logo"
+            className="
+            w-[70%] max-w-[260px] h-10        /* Mobile: wide, but not tall */
+            object-contain
+            sm:w-auto sm:h-20                /* Desktop: original proportions */
+            select-none rounded-xl"
             />
+
           </div>
 
           <nav className="hidden sm:flex items-center gap-8 text-[11px] text-slate-400">
