@@ -228,10 +228,11 @@ interface MugPreviewProps {
 function MugPreview({ imageUrl, hasGeneratedArt, styleId }: MugPreviewProps) {
   const mugBackgroundUrl = "/flasks/twofifteen-premium-bottle.png";
 
-  const PRINT_AREA_WIDTH_PERCENT = 40;
-  const PRINT_AREA_HEIGHT_PERCENT = 58;
-  const PRINT_AREA_TOP_PERCENT = 20;
-  const PRINT_AREA_LEFT_PERCENT = 29;
+  // Print zone on the bottle mockup (already dialled in)
+  const PRINT_AREA_WIDTH_PERCENT = 44;
+  const PRINT_AREA_HEIGHT_PERCENT = 33;
+  const PRINT_AREA_TOP_PERCENT = 50;
+  const PRINT_AREA_LEFT_PERCENT = 27;
 
   const styleLabel = styleId;
 
@@ -263,11 +264,23 @@ function MugPreview({ imageUrl, hasGeneratedArt, styleId }: MugPreviewProps) {
           }}
         >
           {imageUrl ? (
-            <img
-              src={imageUrl}
-              alt="Pet flask artwork preview"
-              className="w-full h-full object-contain select-none"
-            />
+            <div className="flex flex-col items-center justify-between w-full h-full">
+              {/* Art takes the top ~80% of the print area */}
+              <div className="flex items-center justify-center w-full h-[80%]">
+                <img
+                  src={imageUrl}
+                  alt="Pet flask artwork preview"
+                  className="max-h-full w-auto object-contain select-none"
+                />
+              </div>
+
+              {/* QR: fixed size, sits in the lower ~20% of the same print zone */}
+              <div className="flex items-start justify-center w-full h-[20%]">
+                <div className="h-[55%] aspect-square rounded-[3px] bg-white/95 border border-slate-300 shadow-sm flex items-center justify-center text-[8px] font-medium text-slate-900">
+                  QR
+                </div>
+              </div>
+            </div>
           ) : (
             <div className="flex flex-col items-center justify-center text-[11px] px-3 text-center rounded-xl bg-slate-950/85 border border-slate-700/70 shadow-[0_10px_30px_rgba(0,0,0,0.8)]">
               <span className="text-slate-50">
@@ -291,6 +304,10 @@ function MugPreview({ imageUrl, hasGeneratedArt, styleId }: MugPreviewProps) {
   );
 }
 
+
+
+
+ 
 export default function HomePage() {
   const router = useRouter();
   const step1Ref = useRef<HTMLDivElement | null>(null);
