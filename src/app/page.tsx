@@ -276,9 +276,15 @@ function MugPreview({ imageUrl, hasGeneratedArt, styleId }: MugPreviewProps) {
 
               {/* QR: fixed size, sits in the lower ~20% of the same print zone */}
               <div className="flex items-start justify-center w-full h-[20%]">
-                <div className="h-[55%] aspect-square rounded-[3px] bg-white/95 border border-slate-300 shadow-sm flex items-center justify-center text-[8px] font-medium text-slate-900">
-                  QR
-                </div>
+                <img
+                  src="/qr-placeholder.png"
+                  alt="QR code preview"
+                  className="h-[55%] aspect-square object-contain select-none"
+                  style={{
+                    mixBlendMode: "multiply",
+                    opacity: 0.96,
+                  }}
+                />
               </div>
             </div>
           ) : (
@@ -303,6 +309,7 @@ function MugPreview({ imageUrl, hasGeneratedArt, styleId }: MugPreviewProps) {
     </div>
   );
 }
+
 
 
 
