@@ -5,9 +5,11 @@ import sharp from "sharp";
 import { CANVAS_SIZE, getArtAndQrRects } from "@/lib/printLayout";
 import { dataUrlToBuffer } from "@/lib/imageUtils";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import prisma from "@/lib/prisma";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
 export async function GET() {
   return NextResponse.json({
     ok: true,
@@ -16,11 +18,10 @@ export async function GET() {
   });
 }
 
-
 interface GenerateOrderPrintFileBody {
-  orderId?: string;      // optional – nice for naming
-  artworkId: string;     // the art we’re tying this to
-  artworkUrl: string;    // Supabase PNG URL (artwork image)
+  orderId?: string;   // optional – nice for naming
+  artworkId: string;  // the art we’re tying this to
+  artworkUrl: string; // Supabase PNG URL (artwork image)
 }
 
 export async function POST(req: NextRequest) {
@@ -43,7 +44,42 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 1) Fetch artwork PNG from Supabase (or wherever artworkUrl points)
+    // 1) Look up artwork style from Prisma
+    let styleKey: "gangster" | "disney" | "girlboss" = "gangster";
+
+    try {
+      const artwork = await prisma.artwork.findUnique({
+        where: { id: artworkId },
+      });
+
+      if (artwork?.styleId) {
+        const s = artwork.styleId.toLowerCase();
+
+        if (s.includes("girlboss")) {
+          styleKey = "girlboss";
+        } else if (s.includes("disney")) {
+          styleKey = "disney";
+        } else if (s.includes("gangster")) {
+          styleKey = "gangster";
+        } else {
+          // fallback: gangster as default
+          styleKey = "gangster";
+        }
+      }
+    } catch (err) {
+      console.error(
+        "[orders/generate-print-file] Failed to look up artwork style:",
+        err
+      );
+      // keep default styleKey
+    }
+
+    // 2) Build QR target URL: /p?img=<artworkUrl>&s=<styleKey>
+    const encodedArtworkUrl = encodeURIComponent(artworkUrl);
+    const encodedStyle = encodeURIComponent(styleKey);
+    const targetUrl = `${baseUrl}/p?img=${encodedArtworkUrl}&s=${encodedStyle}`;
+
+    // 3) Fetch artwork PNG (clean artwork)
     const artRes = await fetch(artworkUrl);
     if (!artRes.ok) {
       console.error(
@@ -58,8 +94,7 @@ export async function POST(req: NextRequest) {
     }
     const artBuffer = Buffer.from(await artRes.arrayBuffer());
 
-    // 2) Generate QR PNG (transparent) pointing at the experience URL
-    const targetUrl = `${baseUrl}/p/${artworkId}`; // you can change this later
+    // 4) Generate QR PNG (transparent) pointing to targetUrl
     const qrDataUrl = await QRCode.toDataURL(targetUrl, {
       width: 400,
       margin: 0,
@@ -70,10 +105,9 @@ export async function POST(req: NextRequest) {
     });
     const qrBuffer = dataUrlToBuffer(qrDataUrl);
 
-    // 3) Layout: art on top, QR below – matches your preview print zone
+    // 5) Layout: art on top, QR below
     const { art, qr } = getArtAndQrRects();
 
-    // 4) Resize art + QR into their slots
     const resizedArt = await sharp(artBuffer)
       .resize({
         width: art.width,
@@ -94,7 +128,7 @@ export async function POST(req: NextRequest) {
       .png()
       .toBuffer();
 
-    // 5) Composite onto a 3000x3000 transparent canvas
+    // 6) Composite onto a 3000x3000 transparent canvas
     const finalBuffer = await sharp({
       create: {
         width: CANVAS_SIZE,
@@ -110,12 +144,12 @@ export async function POST(req: NextRequest) {
       .png()
       .toBuffer();
 
-    // 6) Upload final print file to Supabase Storage
+    // 7) Upload final print file to Supabase Storage
     const fileId = orderId ?? artworkId;
     const objectPath = `print-files/${fileId}.png`;
 
     const { error: uploadError } = await supabaseAdmin.storage
-      .from("artworks") // bucket name
+      .from("artworks")
       .upload(objectPath, finalBuffer, {
         contentType: "image/png",
         upsert: true,
@@ -136,15 +170,15 @@ export async function POST(req: NextRequest) {
       data: { publicUrl: printFileUrl },
     } = supabaseAdmin.storage.from("artworks").getPublicUrl(objectPath);
 
-    // 7) Return clean metadata – ready to attach to an Order later
     return NextResponse.json(
       {
         ok: true,
         orderId: orderId ?? null,
         artworkId,
         artworkUrl,
-        targetUrl,    // where QR points
-        printFileUrl, // final 3000x3000 PNG for the printer
+        styleKey,
+        targetUrl,    // where QR points: /p?img=...&s=...
+        printFileUrl, // final PNG for printer
       },
       { status: 200 }
     );
