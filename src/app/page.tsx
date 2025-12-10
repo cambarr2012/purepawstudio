@@ -126,7 +126,7 @@ async function compressBase64Image(
 }
 // --- end helper ---
 
-type StyleId = "gangster" | "cartoon" | "girlboss";
+type StyleId = "gangster" | "disney" | "girlboss";
 
 type QualityStatus = "good" | "warn" | "bad";
 
@@ -310,11 +310,6 @@ function MugPreview({ imageUrl, hasGeneratedArt, styleId }: MugPreviewProps) {
   );
 }
 
-
-
-
-
- 
 export default function HomePage() {
   const router = useRouter();
   const step1Ref = useRef<HTMLDivElement | null>(null);
@@ -356,10 +351,9 @@ export default function HomePage() {
   const generatedArtUrl = activeDesign?.imageUrl ?? null;
 
   // DEBUG: log the current flask artwork data URL
-if (generatedArtUrl) {
-  console.log("ARTWORK_DATA_URL", generatedArtUrl);
-}
-
+  if (generatedArtUrl) {
+    console.log("ARTWORK_DATA_URL", generatedArtUrl);
+  }
 
   async function saveArtwork(
     imageBase64: string
@@ -399,10 +393,20 @@ if (generatedArtUrl) {
     }
   }
 
-  function handleGoToCheckout() {
+    function handleGoToCheckout() {
     if (!artworkId) return;
-    router.push(`/checkout?artworkId=${encodeURIComponent(artworkId)}`);
+
+    // Prefer the style of the active design; fall back to current selector
+    const styleForCheckout = activeDesign?.styleId ?? styleId;
+
+    const query = new URLSearchParams({
+      artworkId,
+      styleId: styleForCheckout,
+    });
+
+    router.push(`/checkout?${query.toString()}`);
   }
+
 
   async function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -678,7 +682,6 @@ if (generatedArtUrl) {
           createdAt: Date.now(),
         };
 
-
         setDesigns((prev) => {
           const next = [...prev, newDesign];
           return next.slice(0, MAX_GENERATIONS_PER_PHOTO); // safety, though count is capped
@@ -738,8 +741,6 @@ if (generatedArtUrl) {
         };
     }
   }
-
-  const [artError, setArtError] = useState<string | null>(null);
 
   function renderQualityMessage() {
     if (qualityError) {
@@ -808,6 +809,8 @@ if (generatedArtUrl) {
       </div>
     );
   }
+
+  const [artError, setArtError] = useState<string | null>(null);
 
   const canGenerate =
     !!selectedFile && !!qualityResult && qualityResult.status !== "bad";
@@ -889,18 +892,15 @@ if (generatedArtUrl) {
         {/* Top nav with logo + links */}
         <div className="mb-5 flex items-center justify-center sm:justify-between gap-6 rounded-full border border-slate-800/80 bg-slate-950/80 px-6 md:px-8 py-2.5 md:py-3.5 backdrop-blur-sm shadow-[0_18px_40px_rgba(0,0,0,0.75)]">
           <div className="flex items-center justify-center sm:justify-start gap-3 w-full sm:w-auto">
-          <img
-          src="/purepawstudio-logo.png"
-          alt="PurePawStudio logo"
-          className="
-          h-16 w-auto                   /* mobile: 1.5× bigger */
-          sm:h-20 sm:w-auto            /* desktop: unchanged */
-          object-contain select-none rounded-xl
-          "
-          />
-
-
-
+            <img
+              src="/purepawstudio-logo.png"
+              alt="PurePawStudio logo"
+              className="
+                h-16 w-auto
+                sm:h-20 sm:w-auto
+                object-contain select-none rounded-xl
+              "
+            />
           </div>
 
           <nav className="hidden sm:flex items-center gap-8 text-[11px] text-slate-400">
@@ -1177,9 +1177,9 @@ if (generatedArtUrl) {
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleStyleClick("cartoon")}
+                    onClick={() => handleStyleClick("disney")}
                     className={`${styleButtonBase} ${
-                      styleId === "cartoon"
+                      styleId === "disney"
                         ? activeStyleClasses
                         : inactiveStyleClasses
                     }`}
@@ -1348,7 +1348,7 @@ if (generatedArtUrl) {
             <p className="mt-4 text-[11px] text-slate-500">
               Selected style:{" "}
               <span className="text-slate-200 font-medium capitalize">
-                {effectiveStyleForPreview === "cartoon"
+                {effectiveStyleForPreview === "disney"
                   ? "Disney"
                   : effectiveStyleForPreview}
               </span>

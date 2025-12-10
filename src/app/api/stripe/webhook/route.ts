@@ -57,9 +57,11 @@ export async function POST(req: Request) {
         orderId?: string;
         artworkId?: string;
         artworkUrl?: string;
+        styleId?: string;
         order_id?: string;
         artwork_id?: string;
         artwork_url?: string;
+        style_id?: string;
         [key: string]: string | undefined;
       };
 
@@ -72,10 +74,13 @@ export async function POST(req: Request) {
       const artworkUrl =
         metadata.artworkUrl || metadata.artwork_url || undefined;
 
+      const styleId = metadata.styleId || metadata.style_id || undefined;
+
       console.log("[webhook] checkout.session.completed metadata:", metadata);
-      console.log("[webhook] Resolved orderId/artworkId:", {
+      console.log("[webhook] Resolved orderId/artworkId/styleId:", {
         orderId,
         artworkId,
+        styleId,
       });
 
       if (!orderId) {
@@ -104,6 +109,7 @@ export async function POST(req: Request) {
             orderId,
             artworkId,
             artworkUrl,
+            styleId,
           });
 
           const res = await fetch(`${appUrl}/api/orders/generate-print-file`, {
@@ -115,6 +121,7 @@ export async function POST(req: Request) {
               orderId,
               artworkId,
               artworkUrl,
+              styleId,
             }),
           });
 

@@ -6,6 +6,7 @@ export const dynamic = "force-dynamic";
 
 interface CreateOrderBody {
   artworkId: string;
+  styleId?: string; // NEW: pass through selected style
   email?: string;
   name?: string;
   addressLine1?: string;
@@ -49,6 +50,7 @@ export async function POST(req: NextRequest) {
         orderId,
         id: orderId, // alias in case frontend expects `id`
         artworkId: body.artworkId,
+        styleId: body.styleId ?? null, // NEW: echo styleId forward
         email: body.email ?? null,
       },
       { status: 200 }

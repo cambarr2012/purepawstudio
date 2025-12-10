@@ -4,9 +4,12 @@ import { useState, useEffect, FormEvent, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 
 type CreateOrderResponse = {
+  ok?: boolean;
   orderId: string;
-  status: string;
-  createdAt: string;
+  id?: string;
+  artworkId?: string;
+  styleId?: string | null;
+  email?: string | null;
 };
 
 type CreateCheckoutSessionResponse = {
@@ -20,6 +23,7 @@ function CheckoutContent() {
   const router = useRouter();
 
   const [artworkId, setArtworkId] = useState<string | null>(null);
+  const [styleId, setStyleId] = useState<string | null>(null); // NEW
 
   const [customerName, setCustomerName] = useState("");
   const [email, setEmail] = useState("");
@@ -39,6 +43,11 @@ function CheckoutContent() {
     if (idFromQuery) {
       setArtworkId(idFromQuery);
     }
+
+    const styleFromQuery = searchParams.get("styleId");
+    if (styleFromQuery) {
+      setStyleId(styleFromQuery);
+    }
   }, [searchParams]);
 
   async function handleSubmitOrder(e: FormEvent) {
@@ -56,12 +65,13 @@ function CheckoutContent() {
       setOrderError(null);
       setOrderId(null);
 
-      // 1) Create order in our DB
+      // 1) Create order (stateless API)
       const orderRes = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           artworkId,
+          styleId, // 🔑 thread style into order
           productType: DEFAULT_PRODUCT_TYPE,
           quantity,
           customerName,
@@ -89,7 +99,8 @@ function CheckoutContent() {
       }
 
       const orderData = orderJson as CreateOrderResponse;
-      setOrderId(orderData.orderId);
+      const createdOrderId = orderData.orderId;
+      setOrderId(createdOrderId);
       console.log("Order created:", orderData);
 
       // 2) Create Stripe checkout session for that order
@@ -97,11 +108,12 @@ function CheckoutContent() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-             orderId,
-             artworkId,
-                 email,
-                 }),
-                });
+          orderId: createdOrderId, // ✅ use the value we just got back
+          artworkId,
+          styleId, // 🔑 thread style into Stripe metadata
+          email,
+        }),
+      });
 
       const checkoutJson = (await checkoutRes.json()) as
         | CreateCheckoutSessionResponse
@@ -163,14 +175,24 @@ function CheckoutContent() {
         </header>
 
         <section className="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 md:p-6 space-y-4 shadow-[0_20px_60px_rgba(0,0,0,0.6)]">
-          <div className="text-[11px] text-slate-400 mb-2">
+          <div className="text-[11px] text-slate-400 mb-2 space-y-1">
             {hasArtwork ? (
-              <p>
-                Design linked ✓ Artwork ID:{" "}
-                <span className="font-mono text-[10px] text-slate-200">
-                  {artworkId}
-                </span>
-              </p>
+              <>
+                <p>
+                  Design linked ✓ Artwork ID:{" "}
+                  <span className="font-mono text-[10px] text-slate-200">
+                    {artworkId}
+                  </span>
+                </p>
+                {styleId && (
+                  <p>
+                    Style:{" "}
+                    <span className="font-mono text-[10px] text-teal-300">
+                      {styleId}
+                    </span>
+                  </p>
+                )}
+              </>
             ) : (
               <p className="text-rose-300">
                 No design ID detected. Please return to the studio, generate

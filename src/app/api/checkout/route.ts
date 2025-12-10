@@ -9,6 +9,7 @@ interface CheckoutBody {
   id?: string; // some UIs send `id` instead
   artworkId?: string;
   artworkUrl?: string;
+  styleId?: string; // NEW
   email?: string;
   [key: string]: unknown;
 }
@@ -61,6 +62,11 @@ export async function POST(req: NextRequest) {
     const email =
       body?.email && typeof body.email === "string" ? body.email : undefined;
 
+    const styleId =
+      body?.styleId && typeof body.styleId === "string"
+        ? body.styleId
+        : undefined;
+
     // More robust SITE_URL handling for local + Vercel preview + prod
     const headerOrigin = req.headers.get("origin");
     const siteUrl =
@@ -86,6 +92,19 @@ export async function POST(req: NextRequest) {
     const stripe = new Stripe(stripeSecretKey);
 
     // Inline price for now – £19.99 GBP
+    const metadata: Record<string, string | undefined> = {
+      // camelCase – main path
+      orderId,
+      artworkId,
+      artworkUrl,
+      styleId,
+      // snake_case for older code paths / success page expectations
+      order_id: orderId,
+      artwork_id: artworkId,
+      artwork_url: artworkUrl,
+      style_id: styleId,
+    };
+
     const sessionParams: any = {
       mode: "payment",
       client_reference_id: orderId,
@@ -105,16 +124,7 @@ export async function POST(req: NextRequest) {
       ],
       success_url: `${siteUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${siteUrl}/cancel`,
-      metadata: {
-        // camelCase – main path
-        orderId,
-        artworkId,
-        artworkUrl,
-        // snake_case for older code paths / success page expectations
-        order_id: orderId,
-        artwork_id: artworkId,
-        artwork_url: artworkUrl,
-      },
+      metadata,
     };
 
     if (email) {
@@ -149,6 +159,7 @@ export async function POST(req: NextRequest) {
         orderId,
         artworkId,
         artworkUrl,
+        styleId: styleId ?? null,
         checkoutUrl: session.url,
         url: session.url, // alias in case frontend expects `url`
         sessionId: session.id,

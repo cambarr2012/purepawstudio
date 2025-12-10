@@ -36,15 +36,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL;
-    if (!baseUrl) {
-      return NextResponse.json(
-        { error: "NEXT_PUBLIC_APP_URL is not configured" },
-        { status: 500 }
-      );
-    }
+    // ✅ Robust base URL – works even if NEXT_PUBLIC_APP_URL isn't set on Vercel
+    const baseUrl =
+      process.env.NEXT_PUBLIC_APP_URL ||
+      process.env.NEXT_PUBLIC_SITE_URL ||
+      process.env.SITE_URL ||
+      "https://purepawstudio.com";
 
-    // 1) Look up artwork style from Prisma
+    // 1) Look up artwork style from Prisma (best-effort)
     let styleKey: "gangster" | "disney" | "girlboss" = "gangster";
 
     try {
@@ -55,14 +54,13 @@ export async function POST(req: NextRequest) {
       if (artwork?.styleId) {
         const s = artwork.styleId.toLowerCase();
 
-        if (s.includes("girlboss")) {
+        if (s === "girlboss") {
           styleKey = "girlboss";
-        } else if (s.includes("disney")) {
-          styleKey = "disney";
-        } else if (s.includes("gangster")) {
+        } else if (s === "disney" || s === "cartoon") {
+          styleKey = "disney"; // support legacy "cartoon"
+        } else if (s === "gangster") {
           styleKey = "gangster";
         } else {
-          // fallback: gangster as default
           styleKey = "gangster";
         }
       }
@@ -177,7 +175,7 @@ export async function POST(req: NextRequest) {
         artworkId,
         artworkUrl,
         styleKey,
-        targetUrl,    // where QR points: /p?img=...&s=...
+        targetUrl,    // where the QR points
         printFileUrl, // final PNG for printer
       },
       { status: 200 }
