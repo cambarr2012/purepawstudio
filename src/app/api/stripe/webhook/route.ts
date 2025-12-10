@@ -72,151 +72,79 @@ export async function POST(req: Request) {
       const artworkUrl =
         metadata.artworkUrl || metadata.artwork_url || undefined;
 
-      const email =
-        session.customer_email ?? session.customer_details?.email ?? null;
-
       console.log("[webhook] checkout.session.completed metadata:", metadata);
-      console.log("[webhook] checkout.session.completed email:", email);
       console.log("[webhook] Resolved orderId/artworkId:", {
         orderId,
         artworkId,
       });
 
-      // ⬇️ Dynamic import Prisma only when we actually need it
-      const { default: prisma } = await import("@/lib/prisma");
-
-      if (!orderId && !email) {
+      if (!orderId) {
         console.warn(
-          "[webhook] No orderId or email available to match order, skipping DB update + print file generation."
+          "[webhook] No orderId resolved – cannot generate print file."
+        );
+      } else if (!artworkId) {
+        console.warn(
+          "[webhook] No artworkId in metadata – cannot generate print file."
+        );
+      } else if (!artworkUrl) {
+        console.warn(
+          "[webhook] No artworkUrl in metadata – cannot generate print file."
         );
       } else {
-        let updatedById = false;
+        try {
+          const appUrl =
+            process.env.NODE_ENV === "development"
+              ? "http://localhost:3000"
+              : process.env.NEXT_PUBLIC_APP_URL ||
+                process.env.NEXT_PUBLIC_SITE_URL ||
+                "https://purepawstudio.com";
 
-        // 1️⃣ Mark order as paid by ID (main path)
-        if (orderId) {
-          try {
-            const updated = await prisma.order.update({
-              where: { id: orderId },
-              data: {
-                status: "paid",
-                stripeSessionId: session.id,
-                stripePaymentIntentId:
-                  typeof session.payment_intent === "string"
-                    ? session.payment_intent
-                    : session.payment_intent?.id ?? null,
-              },
-            });
-            updatedById = true;
-            console.log("[webhook] Order marked as paid by ID:", updated.id);
-          } catch (err) {
-            console.error(
-              "[webhook] Failed to update order by ID, will try fallback by email:",
-              err
-            );
-          }
-        }
+          console.log("[webhook] Using appUrl:", appUrl);
+          console.log("[webhook] Calling generate-print-file with:", {
+            orderId,
+            artworkId,
+            artworkUrl,
+          });
 
-        // 2️⃣ Fallback: update all pending orders for this email (legacy safety net)
-        if (!updatedById && email) {
-          try {
-            const result = await prisma.order.updateMany({
-              where: {
-                email,
-                status: "pending_payment",
-              },
-              data: {
-                status: "paid",
-              },
-            });
-            console.log(
-              "[webhook] Fallback updateMany for email result:",
-              result
-            );
-          } catch (err) {
-            console.error(
-              "[webhook] Fallback update by email failed as well:",
-              err
-            );
-          }
-        }
-
-        // 3️⃣ Trigger print-file generation
-        if (!orderId) {
-          console.warn(
-            "[webhook] No orderId resolved – cannot generate print file."
-          );
-        } else if (!artworkId) {
-          console.warn(
-            "[webhook] No artworkId in metadata – cannot generate print file."
-          );
-        } else {
-          try {
-            const appUrl =
-              process.env.NODE_ENV === "development"
-                ? "http://localhost:3000"
-                : process.env.NEXT_PUBLIC_APP_URL ||
-                  process.env.NEXT_PUBLIC_SITE_URL ||
-                  "https://purepawstudio.com";
-
-            console.log("[webhook] Using appUrl:", appUrl);
-            console.log("[webhook] Calling generate-print-file with:", {
+          const res = await fetch(`${appUrl}/api/orders/generate-print-file`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
               orderId,
               artworkId,
               artworkUrl,
-            });
+            }),
+          });
 
-            const res = await fetch(
-              `${appUrl}/api/orders/generate-print-file`,
+          if (!res.ok) {
+            const text = await res.text();
+            console.error(
+              "[webhook] generate-print-file failed:",
+              res.status,
+              text
+            );
+          } else {
+            const data = (await res.json()) as {
+              printFileUrl?: string;
+              targetUrl?: string;
+              [key: string]: any;
+            };
+
+            console.log(
+              "[webhook] generate-print-file success. Response summary:",
               {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  orderId,
-                  artworkId,
-                  artworkUrl,
-                }),
+                printFileUrl: data.printFileUrl,
+                targetUrl: data.targetUrl,
               }
             );
-
-            if (!res.ok) {
-              const text = await res.text();
-              console.error(
-                "[webhook] generate-print-file failed:",
-                res.status,
-                text
-              );
-            } else {
-              const data = (await res.json()) as {
-                printFileUrl?: string;
-                targetUrl?: string;
-                [key: string]: any;
-              };
-
-              console.log(
-                "[webhook] generate-print-file success. Response summary:",
-                {
-                  printFileUrl: data.printFileUrl,
-                  targetUrl: data.targetUrl,
-                }
-              );
-
-              // OPTIONAL: persist print file info to your Order record
-              // await prisma.order.update({
-              //   where: { id: orderId },
-              //   data: {
-              //     printFileUrl: data.printFileUrl,
-              //     qrTargetUrl: data.targetUrl,
-              //   },
-              // });
-            }
-          } catch (err) {
-            console.error(
-              "[webhook] Error while calling generate-print-file:",
-              err
-            );
           }
+        } catch (err) {
+          console.error(
+            "[webhook] Error while calling generate-print-file:",
+            err
+          );
         }
       }
     } else {
