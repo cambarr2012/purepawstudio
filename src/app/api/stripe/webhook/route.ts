@@ -1,7 +1,6 @@
 // src/app/api/stripe/webhook/route.ts
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
-import prisma from "@/lib/prisma";
 
 export const runtime = "nodejs";
 
@@ -82,6 +81,9 @@ export async function POST(req: Request) {
         orderId,
         artworkId,
       });
+
+      // ⬇️ Dynamic import Prisma only when we actually need it
+      const { default: prisma } = await import("@/lib/prisma");
 
       if (!orderId && !email) {
         console.warn(
