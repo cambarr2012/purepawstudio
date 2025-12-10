@@ -355,6 +355,12 @@ export default function HomePage() {
   const activeDesign = designs[activeDesignIndex] ?? null;
   const generatedArtUrl = activeDesign?.imageUrl ?? null;
 
+  // DEBUG: log the current flask artwork data URL
+if (generatedArtUrl) {
+  console.log("ARTWORK_DATA_URL", generatedArtUrl);
+}
+
+
   async function saveArtwork(
     imageBase64: string
   ): Promise<SaveArtworkResponse | null> {
@@ -665,11 +671,13 @@ export default function HomePage() {
 
         const newDesign: GeneratedDesign = {
           id: `design-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-          imageUrl: standardized,
+          // Prefer the Supabase URL if we have it; fall back to the local data URL as a backup
+          imageUrl: saved?.imageUrl ?? standardized,
           artworkId: saved?.artworkId ?? null,
           styleId,
           createdAt: Date.now(),
         };
+
 
         setDesigns((prev) => {
           const next = [...prev, newDesign];

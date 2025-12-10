@@ -1,6 +1,8 @@
 // src/app/api/artworks/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { dataUrlToBuffer } from "@/lib/imageUtils";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,32 +20,27 @@ interface QualityResult {
 }
 
 interface SaveArtworkBody {
-  imageBase64: string; // data:image/png;base64,...
+  imageBase64: string; // data URL
   petName?: string;
   petType?: string;
   styleId: StyleId;
   qualityResult?: QualityResult;
 }
 
-// Simple GET so we can confirm the route is alive in the browser
 export async function GET() {
   return NextResponse.json({
     ok: true,
     route: "/api/artworks",
     methods: ["GET", "POST"],
-    storage: "stateless-temp",
+    storage: "supabase-stateless",
   });
 }
 
 export async function POST(req: NextRequest) {
   try {
-    console.log("[artworks] POST /api/artworks hit (stateless mode)");
+    console.log("[artworks] POST hit (supabase upload)");
 
     const body = (await req.json()) as SaveArtworkBody | null;
-    console.log(
-      "[artworks] Request body keys:",
-      body ? Object.keys(body) : []
-    );
 
     if (!body?.imageBase64 || !body?.styleId) {
       return NextResponse.json(
@@ -53,36 +50,61 @@ export async function POST(req: NextRequest) {
     }
 
     if (!body.imageBase64.startsWith("data:image")) {
-      console.warn("[artworks] imageBase64 is not a data URL");
+      return NextResponse.json(
+        { error: "imageBase64 must be a data:image URL" },
+        { status: 400 }
+      );
     }
 
-    // 🔑 Generate a pseudo-stable artwork ID without touching the DB
+    // Create a temporary ID — still stateless
     const artworkId = `art_${crypto.randomBytes(8).toString("hex")}`;
 
-    const responsePayload = {
+    // Convert data URL → Buffer
+    const buffer = dataUrlToBuffer(body.imageBase64);
+
+    // Upload to Supabase
+    const objectPath = `artworks/${artworkId}.png`;
+
+    const { error: uploadError } = await supabaseAdmin.storage
+      .from("artworks")
+      .upload(objectPath, buffer, {
+        contentType: "image/png",
+        upsert: true,
+      });
+
+    if (uploadError) {
+      console.error("[artworks] upload error:", uploadError);
+      return NextResponse.json(
+        { error: "Failed to upload artwork to storage" },
+        { status: 500 }
+      );
+    }
+
+    // Get public URL
+    const {
+      data: { publicUrl },
+    } = supabaseAdmin.storage.from("artworks").getPublicUrl(objectPath);
+
+    const payload = {
       artworkId,
-      // Frontend only really needs artworkId; keep everything else light
-      imageUrl: null as string | null,
+      imageUrl: publicUrl,
       petName: body.petName ?? null,
       petType: body.petType ?? null,
-      styleId: body.styleId as StyleId,
+      styleId: body.styleId,
       qualityResult: body.qualityResult ?? null,
-      storageMode: "stateless-temp",
+      storageMode: "supabase",
       createdAt: new Date().toISOString(),
     };
 
-    console.log("[artworks] Returning fake saved artwork:", responsePayload);
+    console.log("[artworks] returning:", payload);
 
-    return NextResponse.json(responsePayload, { status: 200 });
+    return NextResponse.json(payload, { status: 200 });
   } catch (err: any) {
-    console.error("[artworks] Unexpected error in POST /api/artworks:", err);
+    console.error("[artworks] unexpected error:", err);
     return NextResponse.json(
       {
-        error: "Internal server error saving artwork (stateless mode)",
-        details:
-          process.env.NODE_ENV === "development"
-            ? String(err?.message || err)
-            : undefined,
+        error: "Internal error saving artwork",
+        details: err?.message ?? String(err),
       },
       { status: 500 }
     );
