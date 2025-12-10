@@ -8,6 +8,7 @@ interface CheckoutBody {
   orderId?: string;
   id?: string; // some UIs send `id` instead
   artworkId?: string;
+  artworkUrl?: string;
   email?: string;
   [key: string]: unknown;
 }
@@ -29,8 +30,34 @@ export async function POST(req: NextRequest) {
     console.log("[checkout] POST /api/checkout body:", body);
 
     const orderId =
-      body?.orderId || body?.id || `ord_${Math.random().toString(16).slice(2, 10)}`;
-    const artworkId = body?.artworkId ?? "";
+      body?.orderId ||
+      body?.id ||
+      `ord_${Math.random().toString(16).slice(2, 10)}`;
+
+    const artworkId =
+      body?.artworkId && typeof body.artworkId === "string"
+        ? body.artworkId
+        : "";
+
+    // 1️⃣ Try to read artworkUrl from body
+    let artworkUrl =
+      body?.artworkUrl && typeof body.artworkUrl === "string"
+        ? body.artworkUrl
+        : undefined;
+
+    // 2️⃣ If missing, compute it from Supabase URL + bucket + artworkId
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const artworksBucket =
+      process.env.SUPABASE_ARTWORKS_BUCKET || "artworks";
+
+    if (!artworkUrl && artworkId && supabaseUrl) {
+      artworkUrl = `${supabaseUrl}/storage/v1/object/public/${artworksBucket}/artworks/${artworkId}.png`;
+      console.log(
+        "[checkout] Computed artworkUrl from artworkId:",
+        artworkUrl
+      );
+    }
+
     const email =
       body?.email && typeof body.email === "string" ? body.email : undefined;
 
@@ -79,12 +106,14 @@ export async function POST(req: NextRequest) {
       success_url: `${siteUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${siteUrl}/cancel`,
       metadata: {
-        // camelCase
+        // camelCase – main path
         orderId,
         artworkId,
+        artworkUrl,
         // snake_case for older code paths / success page expectations
         order_id: orderId,
         artwork_id: artworkId,
+        artwork_url: artworkUrl,
       },
     };
 
@@ -95,7 +124,6 @@ export async function POST(req: NextRequest) {
     const session = await stripe.checkout.sessions.create(sessionParams as any);
     console.log("[checkout] Session created:", session.id);
     console.log("[checkout] Session metadata:", session.metadata);
-    
 
     if (!session.url) {
       console.error(
@@ -120,6 +148,7 @@ export async function POST(req: NextRequest) {
         ok: true,
         orderId,
         artworkId,
+        artworkUrl,
         checkoutUrl: session.url,
         url: session.url, // alias in case frontend expects `url`
         sessionId: session.id,
