@@ -1,11 +1,12 @@
 // src/lib/printLayout.ts
 
-// High-res final print file
-export const CANVAS_SIZE = 5000; // was 3000
+export const CANVAS_SIZE = 3000; // final 3000x3000px print file
 
-// Keep your original visual proportions from the UI
-const PRINT_AREA_WIDTH_PERCENT = 44;
-const PRINT_AREA_HEIGHT_PERCENT = 33;
+// Medium-sized print zone, bigger than before but same proportions.
+// Previously: 44% width, 33% height.
+// Now: 60% width, 40% height → ~1.6–1.8x larger area.
+const PRINT_AREA_WIDTH_PERCENT = 60;
+const PRINT_AREA_HEIGHT_PERCENT = 40;
 
 export function getPrintAreaRect() {
   const width = Math.round((CANVAS_SIZE * PRINT_AREA_WIDTH_PERCENT) / 100);
@@ -17,7 +18,7 @@ export function getPrintAreaRect() {
   return { width, height, left, top };
 }
 
-// Art top 80%, QR bottom 20% of the print area
+// Art top 80%, QR bottom 20% of the print area – same ratio as your preview.
 export function getArtAndQrRects() {
   const print = getPrintAreaRect();
 
@@ -31,7 +32,7 @@ export function getArtAndQrRects() {
     height: artHeight,
   };
 
-  // QR ~55% of its band => visually small, like the preview
+  // QR sits in the lower band, same relative size, just in a bigger zone now.
   const qrSize = Math.round(Math.min(print.width, qrBandHeight) * 0.55);
   const qr = {
     width: qrSize,
