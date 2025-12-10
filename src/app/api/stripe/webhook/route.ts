@@ -1,7 +1,6 @@
 // src/app/api/stripe/webhook/route.ts
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
-import { stripe } from "@/lib/stripe";
 import prisma from "@/lib/prisma";
 
 export const runtime = "nodejs";
@@ -11,6 +10,7 @@ export async function POST(req: Request) {
     const rawBody = await req.text();
     const sig = req.headers.get("stripe-signature");
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 
     let event: Stripe.Event;
 
@@ -28,13 +28,16 @@ export async function POST(req: Request) {
       }
     } else {
       // 🔒 PROD: real Stripe signature verification
-      if (!sig || !webhookSecret) {
-        console.error("[webhook] Missing signature or webhook secret", {
+      if (!sig || !webhookSecret || !stripeSecretKey) {
+        console.error("[webhook] Missing sig/secret/stripe key", {
           hasSig: !!sig,
-          hasSecret: !!webhookSecret,
+          hasWebhookSecret: !!webhookSecret,
+          hasStripeKey: !!stripeSecretKey,
         });
         return new NextResponse("Bad request", { status: 400 });
       }
+
+      const stripe = new Stripe(stripeSecretKey);
 
       try {
         event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
@@ -226,6 +229,7 @@ export async function POST(req: Request) {
   }
 }
 
+// Simple health check for browser / sanity
 export async function GET() {
   return NextResponse.json({
     ok: true,
@@ -233,4 +237,3 @@ export async function GET() {
     method: "GET",
   });
 }
-
