@@ -14,7 +14,7 @@ export async function POST(req: Request) {
     let event: Stripe.Event;
 
     if (process.env.NODE_ENV === "development") {
-      // 🔓 DEV ONLY: skip signature verification to avoid endless secret/header issues
+      // 🔓 DEV ONLY: skip signature verification
       try {
         event = JSON.parse(rawBody) as Stripe.Event;
         console.log("[webhook][dev] Parsed event without signature check:", {
@@ -57,10 +57,10 @@ export async function POST(req: Request) {
         orderId?: string;
         artworkId?: string;
         artworkUrl?: string;
-        styleId?: string;
         order_id?: string;
         artwork_id?: string;
         artwork_url?: string;
+        styleId?: string;
         style_id?: string;
         [key: string]: string | undefined;
       };
@@ -74,13 +74,14 @@ export async function POST(req: Request) {
       const artworkUrl =
         metadata.artworkUrl || metadata.artwork_url || undefined;
 
-      const styleId = metadata.styleId || metadata.style_id || undefined;
+      const styleIdMeta =
+        metadata.styleId || metadata.style_id || undefined;
 
       console.log("[webhook] checkout.session.completed metadata:", metadata);
       console.log("[webhook] Resolved orderId/artworkId/styleId:", {
         orderId,
         artworkId,
-        styleId,
+        styleIdMeta,
       });
 
       if (!orderId) {
@@ -109,7 +110,7 @@ export async function POST(req: Request) {
             orderId,
             artworkId,
             artworkUrl,
-            styleId,
+            styleId: styleIdMeta,
           });
 
           const res = await fetch(`${appUrl}/api/orders/generate-print-file`, {
@@ -121,7 +122,7 @@ export async function POST(req: Request) {
               orderId,
               artworkId,
               artworkUrl,
-              styleId,
+              styleId: styleIdMeta,
             }),
           });
 

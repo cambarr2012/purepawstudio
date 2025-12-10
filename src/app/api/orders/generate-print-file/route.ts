@@ -5,7 +5,6 @@ import sharp from "sharp";
 import { CANVAS_SIZE, getArtAndQrRects } from "@/lib/printLayout";
 import { dataUrlToBuffer } from "@/lib/imageUtils";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import prisma from "@/lib/prisma";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,16 +17,31 @@ export async function GET() {
   });
 }
 
+type StyleKey = "gangster" | "disney" | "girlboss";
+
 interface GenerateOrderPrintFileBody {
   orderId?: string;   // optional – nice for naming
   artworkId: string;  // the art we’re tying this to
   artworkUrl: string; // Supabase PNG URL (artwork image)
+  styleId?: string;   // e.g. "gangster" | "disney" | "girlboss" | "cartoon"
+}
+
+function normaliseStyle(styleId?: string | null): StyleKey {
+  if (!styleId) return "gangster";
+
+  const s = styleId.toLowerCase();
+
+  if (s.includes("girl")) return "girlboss";
+  if (s.includes("disney") || s.includes("cartoon")) return "disney";
+  if (s.includes("gangster")) return "gangster";
+
+  return "gangster"; // safe default
 }
 
 export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as GenerateOrderPrintFileBody;
-    const { orderId, artworkId, artworkUrl } = body;
+    const { orderId, artworkId, artworkUrl, styleId } = body;
 
     if (!artworkId || !artworkUrl) {
       return NextResponse.json(
@@ -36,48 +50,26 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ✅ Robust base URL – works even if NEXT_PUBLIC_APP_URL isn't set on Vercel
     const baseUrl =
       process.env.NEXT_PUBLIC_APP_URL ||
       process.env.NEXT_PUBLIC_SITE_URL ||
-      process.env.SITE_URL ||
-      "https://purepawstudio.com";
+      req.nextUrl.origin;
 
-    // 1) Look up artwork style from Prisma (best-effort)
-    let styleKey: "gangster" | "disney" | "girlboss" = "gangster";
-
-    try {
-      const artwork = await prisma.artwork.findUnique({
-        where: { id: artworkId },
-      });
-
-      if (artwork?.styleId) {
-        const s = artwork.styleId.toLowerCase();
-
-        if (s === "girlboss") {
-          styleKey = "girlboss";
-        } else if (s === "disney" || s === "cartoon") {
-          styleKey = "disney"; // support legacy "cartoon"
-        } else if (s === "gangster") {
-          styleKey = "gangster";
-        } else {
-          styleKey = "gangster";
-        }
-      }
-    } catch (err) {
-      console.error(
-        "[orders/generate-print-file] Failed to look up artwork style:",
-        err
+    if (!baseUrl) {
+      return NextResponse.json(
+        { error: "Base app URL is not configured" },
+        { status: 500 }
       );
-      // keep default styleKey
     }
 
-    // 2) Build QR target URL: /p?img=<artworkUrl>&s=<styleKey>
+    const styleKey = normaliseStyle(styleId);
+
+    // 1) Build QR target URL: /p?img=<artworkUrl>&s=<styleKey>
     const encodedArtworkUrl = encodeURIComponent(artworkUrl);
     const encodedStyle = encodeURIComponent(styleKey);
     const targetUrl = `${baseUrl}/p?img=${encodedArtworkUrl}&s=${encodedStyle}`;
 
-    // 3) Fetch artwork PNG (clean artwork)
+    // 2) Fetch artwork PNG (clean artwork)
     const artRes = await fetch(artworkUrl);
     if (!artRes.ok) {
       console.error(
@@ -92,7 +84,7 @@ export async function POST(req: NextRequest) {
     }
     const artBuffer = Buffer.from(await artRes.arrayBuffer());
 
-    // 4) Generate QR PNG (transparent) pointing to targetUrl
+    // 3) Generate QR PNG (transparent) pointing to targetUrl
     const qrDataUrl = await QRCode.toDataURL(targetUrl, {
       width: 400,
       margin: 0,
@@ -103,7 +95,7 @@ export async function POST(req: NextRequest) {
     });
     const qrBuffer = dataUrlToBuffer(qrDataUrl);
 
-    // 5) Layout: art on top, QR below
+    // 4) Layout: art on top, QR below
     const { art, qr } = getArtAndQrRects();
 
     const resizedArt = await sharp(artBuffer)
@@ -126,7 +118,7 @@ export async function POST(req: NextRequest) {
       .png()
       .toBuffer();
 
-    // 6) Composite onto a 3000x3000 transparent canvas
+    // 5) Composite onto a 3000x3000 transparent canvas
     const finalBuffer = await sharp({
       create: {
         width: CANVAS_SIZE,
@@ -142,7 +134,7 @@ export async function POST(req: NextRequest) {
       .png()
       .toBuffer();
 
-    // 7) Upload final print file to Supabase Storage
+    // 6) Upload final print file to Supabase Storage
     const fileId = orderId ?? artworkId;
     const objectPath = `print-files/${fileId}.png`;
 
@@ -175,7 +167,7 @@ export async function POST(req: NextRequest) {
         artworkId,
         artworkUrl,
         styleKey,
-        targetUrl,    // where the QR points
+        targetUrl, // where QR points: /p?img=...&s=...
         printFileUrl, // final PNG for printer
       },
       { status: 200 }
