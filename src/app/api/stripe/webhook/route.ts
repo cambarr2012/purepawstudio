@@ -225,3 +225,12 @@ export async function POST(req: Request) {
     return new NextResponse("OK", { status: 200 });
   }
 }
+
+export async function GET() {
+  return NextResponse.json({
+    ok: true,
+    route: "/api/stripe/webhook",
+    method: "GET",
+  });
+}
+
