@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
 
     // 3) Generate QR PNG (transparent) pointing to targetUrl
     const qrDataUrl = await QRCode.toDataURL(targetUrl, {
-      width: 400,
+      width: 1000, // 🔥 high-res QR for print
       margin: 0,
       color: {
         dark: "#000000ff",
@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
     });
     const qrBuffer = dataUrlToBuffer(qrDataUrl);
 
-    // 4) Layout: art on top, QR below
+    // 4) Layout: art on top, QR below (using high-res 5000x5000 canvas)
     const { art, qr } = getArtAndQrRects();
 
     const resizedArt = await sharp(artBuffer)
@@ -118,7 +118,7 @@ export async function POST(req: NextRequest) {
       .png()
       .toBuffer();
 
-    // 5) Composite onto a 3000x3000 transparent canvas
+    // 5) Composite onto a CANVAS_SIZE x CANVAS_SIZE transparent canvas
     const finalBuffer = await sharp({
       create: {
         width: CANVAS_SIZE,
@@ -168,7 +168,7 @@ export async function POST(req: NextRequest) {
         artworkUrl,
         styleKey,
         targetUrl, // where QR points: /p?img=...&s=...
-        printFileUrl, // final PNG for printer
+        printFileUrl, // final high-res PNG for printer
       },
       { status: 200 }
     );
