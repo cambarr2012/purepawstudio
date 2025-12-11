@@ -19,7 +19,7 @@ export default function MugPreview({
   const PRINT_AREA_WIDTH_PERCENT = 47;
   const PRINT_AREA_HEIGHT_PERCENT = 36;
   const PRINT_AREA_TOP_PERCENT = 45;
-  const PRINT_AREA_LEFT_PERCENT = 24;
+  const PRINT_AREA_LEFT_PERCENT = 25;
 
   const styleLabel = styleId;
 
