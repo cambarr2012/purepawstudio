@@ -1,135 +1,94 @@
 // src/app/admin/page.tsx
-// @ts-nocheck
-
-import Link from "next/link";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
+
+type OrderRow = {
+  id: number;
+  order_id: string;
+  artwork_id: string | null;
+  style_id: string | null;
+  product_type: string | null;
+  quantity: number | null;
+  customer_name: string | null;
+  email: string | null;
+  address_line1: string | null;
+  address_line2: string | null;
+  city: string | null;
+  postcode: string | null;
+  country: string | null;
+  status: string | null;
+  stripe_session_id: string | null;
+  print_file_url: string | null;
+  created_at: string | null;
+};
 
 async function getData() {
-  // Latest orders
-  const { data: ordersRaw } = await supabaseAdmin
+  const { data: orders, error } = await supabaseAdmin
     .from("orders")
     .select("*")
     .order("created_at", { ascending: false })
-    .limit(30);
+    .limit(20);
 
-  const orders = (ordersRaw ?? []) as any[];
-
-  // Collect artwork IDs
-  const artworkIds = Array.from(
-    new Set(
-      orders
-        .map((o) => o.artwork_id)
-        .filter((id: any): id is string => !!id)
-    )
-  );
-
-  const artworksMap = new Map<string, any>();
-
-  if (artworkIds.length > 0) {
-    const { data: artworksRaw } = await supabaseAdmin
-      .from("artworks")
-      .select("*")
-      .in("id", artworkIds);
-
-    (artworksRaw ?? []).forEach((art: any) => {
-      artworksMap.set(art.id, art);
-    });
+  if (error) {
+    console.error("[admin] Failed to fetch orders:", error);
   }
 
-  return { orders, artworksMap };
-}
+  const safeOrders: OrderRow[] = (orders ?? []) as any[];
 
-function formatDate(iso: string | null | undefined) {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return iso;
-  return d.toLocaleString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
+  const totals = {
+    totalOrders: safeOrders.length,
+    paid: safeOrders.filter((o) =>
+      (o.status ?? "").toLowerCase().includes("paid")
+    ).length,
+    readyForPrint: safeOrders.filter((o) => !!o.print_file_url).length,
+  };
 
-function StatusBadge({ status }: { status: string | null | undefined }) {
-  const s = (status || "created").toLowerCase();
-
-  let label = s;
-  let classes =
-    "bg-slate-800 text-slate-200 border border-slate-600";
-
-  if (s === "created") {
-    label = "Created";
-    classes = "bg-slate-900 text-slate-200 border border-slate-600";
-  } else if (s === "paid") {
-    label = "Paid";
-    classes = "bg-amber-500/10 text-amber-300 border border-amber-400/60";
-  } else if (s === "ready_for_print") {
-    label = "Ready for print";
-    classes =
-      "bg-emerald-500/10 text-emerald-300 border border-emerald-400/70";
-  }
-
-  return (
-    <span
-      className={`inline-flex items-center px-2 py-[2px] rounded-full text-[10px] font-medium ${classes}`}
-    >
-      {label}
-    </span>
-  );
+  return { orders: safeOrders, totals };
 }
 
 export default async function AdminPage() {
-  const { orders, artworksMap } = await getData();
-
-  const totalOrders = orders.length;
-  const paidCount = orders.filter(
-    (o: any) => (o.status || "").toLowerCase() === "paid"
-  ).length;
-  const readyCount = orders.filter(
-    (o: any) => (o.status || "").toLowerCase() === "ready_for_print"
-  ).length;
+  const { orders, totals } = await getData();
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100">
-      {/* Warm amber/navy background to match new brand vibe */}
-      <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top,_rgba(251,191,36,0.16)_0,transparent_55%),radial-gradient(circle_at_bottom,_rgba(15,23,42,1)_0,rgba(15,23,42,1)_60%)]" />
-
-      <div className="max-w-6xl mx-auto px-4 py-8">
+    <main className="min-h-screen bg-[#F8F1E7] text-slate-900">
+      <div className="max-w-6xl mx-auto px-4 py-10">
+        {/* Header */}
         <header className="mb-8 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
-            <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
+            <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-slate-900">
               Admin dashboard
             </h1>
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-slate-600">
               Internal view of PurePaw Flask orders &amp; print files.
             </p>
           </div>
-          <div className="text-right text-[11px] text-slate-500 space-y-1">
-            <p>Dev-only · no auth · Supabase-backed.</p>
-            <p className="text-slate-400">
+          <div className="text-xs text-right text-slate-600 space-y-1">
+            <p className="uppercase tracking-[0.18em] text-amber-700">
+              Dev-only · no auth · Supabase-backed
+            </p>
+            <p>
               Orders:{" "}
-              <span className="text-slate-50 font-semibold">
-                {totalOrders}
+              <span className="font-semibold text-slate-900">
+                {totals.totalOrders}
               </span>{" "}
               · Paid:{" "}
-              <span className="text-amber-300 font-semibold">
-                {paidCount}
+              <span className="font-semibold text-emerald-700">
+                {totals.paid}
               </span>{" "}
               · Ready for print:{" "}
-              <span className="text-emerald-300 font-semibold">
-                {readyCount}
+              <span className="font-semibold text-amber-700">
+                {totals.readyForPrint}
               </span>
             </p>
           </div>
         </header>
 
-        <section className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 md:p-5 shadow-[0_18px_50px_rgba(0,0,0,0.7)]">
-          <div className="flex items-center justify-between gap-2 mb-4">
-            <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-300">
+        {/* Card */}
+        <section className="rounded-3xl border border-[#e2d6c5] bg-[#FCFAF7] shadow-[0_18px_40px_rgba(15,23,42,0.12)] px-4 py-4 md:px-6 md:py-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xs font-semibold tracking-[0.22em] uppercase text-amber-700">
               Recent orders
             </h2>
             <span className="text-[11px] text-slate-500">
@@ -138,15 +97,15 @@ export default async function AdminPage() {
           </div>
 
           {orders.length === 0 ? (
-            <p className="text-sm text-slate-500">
-              No orders yet. Generate a design and complete checkout to see
-              them here.
+            <p className="text-sm text-slate-600">
+              No orders yet. Generate a design and complete checkout to see them
+              here.
             </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full text-xs">
                 <thead>
-                  <tr className="border-b border-slate-800 text-slate-400">
+                  <tr className="border-b border-[#eadfce] text-slate-500 text-[11px]">
                     <th className="py-2 pr-3 text-left font-medium">Order</th>
                     <th className="py-2 px-3 text-left font-medium">
                       Customer &amp; shipping
@@ -157,132 +116,125 @@ export default async function AdminPage() {
                     <th className="py-2 px-3 text-left font-medium">
                       Artwork
                     </th>
-                    <th className="py-2 px-3 text-left font-medium">
-                      Status
-                    </th>
+                    <th className="py-2 px-3 text-left font-medium">Status</th>
                     <th className="py-2 pl-3 text-right font-medium">
                       Created
                     </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {orders.map((order: any) => {
-                    const artwork = order.artwork_id
-                      ? artworksMap.get(order.artwork_id)
-                      : undefined;
+                  {orders.map((order) => {
+                    const created =
+                      order.created_at &&
+                      new Date(order.created_at).toLocaleString("en-GB", {
+                        day: "2-digit",
+                        month: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      });
+
+                    const hasPrintFile = !!order.print_file_url;
+                    const statusLabel = (order.status ?? "Created").toUpperCase();
 
                     return (
                       <tr
-                        key={order.order_id}
-                        className="border-b border-slate-900/70 hover:bg-slate-900/70 transition"
+                        key={order.id}
+                        className="border-b border-[#f0e5d6] hover:bg-[#f4e9da] transition"
                       >
-                        {/* Order + Stripe + print file */}
                         <td className="py-2 pr-3 align-top">
-                          <div className="font-mono text-[11px] text-amber-300">
-                            {String(order.order_id).slice(0, 12)}…
+                          <div className="font-mono text-[11px] text-amber-700">
+                            {order.order_id?.slice(0, 12) ?? "—"}
                           </div>
-                          {order.stripe_session_id && (
-                            <div className="mt-1 text-[10px] text-slate-500">
-                              Stripe:{" "}
-                              <span className="font-mono">
-                                {String(order.stripe_session_id).slice(0, 10)}…
-                              </span>
-                            </div>
-                          )}
-                          {order.print_file_url && (
-                            <div className="mt-1">
-                              <a
-                                href={order.print_file_url}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-[10px] text-emerald-300 hover:text-emerald-200 underline"
-                              >
-                                View print file
-                              </a>
-                            </div>
-                          )}
+                          <div className="mt-1 text-[10px] text-slate-500">
+                            Stripe:{" "}
+                            <span className="font-mono">
+                              {order.stripe_session_id?.slice(0, 10) || "—"}
+                            </span>
+                          </div>
                         </td>
 
-                        {/* Customer + shipping */}
                         <td className="py-2 px-3 align-top text-[11px]">
-                          <div className="font-medium">
+                          <div className="font-medium text-slate-900">
                             {order.customer_name || "—"}
                           </div>
-                          <div className="text-slate-400">
+                          <div className="text-slate-500">
                             {order.email || "—"}
                           </div>
-                          <div className="mt-1 text-[10px] text-slate-500 leading-tight">
+                          <div className="mt-1 text-slate-500">
                             {order.address_line1 && (
-                              <div>{order.address_line1}</div>
+                              <>
+                                {order.address_line1}
+                                {order.address_line2 && (
+                                  <>
+                                    <br />
+                                    {order.address_line2}
+                                  </>
+                                )}
+                                <br />
+                              </>
                             )}
-                            {order.address_line2 && (
-                              <div>{order.address_line2}</div>
+                            {order.city && `${order.city}, `}
+                            {order.postcode}
+                            {order.country && (
+                              <>
+                                <br />
+                                {order.country}
+                              </>
                             )}
-                            <div>
-                              {order.city || "—"},{" "}
-                              {order.postcode || "—"}
-                            </div>
-                            <div>{order.country || "—"}</div>
                           </div>
                         </td>
 
-                        {/* Product */}
                         <td className="py-2 px-3 align-top text-[11px]">
-                          <div className="font-medium">
-                            {order.product_type ||
-                              "twofifteen_premium_stainless_flask_500ml"}
+                          <div className="font-medium text-slate-900">
+                            {order.product_type || "—"}
                           </div>
                           <div className="text-slate-500">
                             Qty: {order.quantity ?? 1}
                           </div>
                           {order.style_id && (
-                            <div className="mt-1 text-[10px] text-slate-500">
+                            <div className="text-[10px] text-slate-500">
                               Style: {order.style_id}
                             </div>
                           )}
                         </td>
 
-                        {/* Artwork summary */}
                         <td className="py-2 px-3 align-top text-[11px]">
-                          {order.artwork_id ? (
-                            <>
-                              <div className="font-mono text-[10px] text-slate-300">
-                                {order.artwork_id}
-                              </div>
-                              {artwork && (
-                                <div className="mt-1 text-[10px] text-slate-500">
-                                  {artwork.pet_name
-                                    ? `${artwork.pet_name} · ${
-                                        artwork.pet_type ?? "Pet"
-                                      }`
-                                    : artwork.pet_type ?? "Unnamed pet"}
-                                </div>
-                              )}
-                            </>
-                          ) : (
-                            <span className="text-slate-500">—</span>
-                          )}
-                        </td>
-
-                        {/* Status */}
-                        <td className="py-2 px-3 align-top text-right">
-                          <div className="mb-1">
-                            <StatusBadge status={order.status} />
+                          <div className="font-mono text-[10px] text-slate-700">
+                            {order.artwork_id || "—"}
                           </div>
-                          {order.print_file_url ? (
-                            <p className="text-[10px] text-emerald-300">
-                              Print file ready
-                            </p>
-                          ) : (
-                            <p className="text-[10px] text-slate-500">
-                              Awaiting print file
-                            </p>
+                          <div className="mt-1 text-[10px] text-slate-500">
+                            Print file:{" "}
+                            {hasPrintFile ? (
+                              <span className="text-emerald-700 font-medium">
+                                Ready
+                              </span>
+                            ) : (
+                              <span>Awaiting</span>
+                            )}
+                          </div>
+                          {hasPrintFile && (
+                            <a
+                              href={order.print_file_url!}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="mt-1 inline-flex text-[10px] text-amber-700 underline"
+                            >
+                              Open PNG
+                            </a>
                           )}
                         </td>
 
-                        {/* Created */}
+                        <td className="py-2 px-3 align-top text-[11px]">
+                          <span className="inline-flex items-center rounded-full border border-amber-300 bg-amber-100/80 px-2 py-[2px] text-[10px] font-medium text-amber-800">
+                            {statusLabel}
+                          </span>
+                          <div className="mt-1 text-[10px] text-slate-500">
+                            {hasPrintFile ? "Print file ready" : "Awaiting print file"}
+                          </div>
+                        </td>
+
                         <td className="py-2 pl-3 pr-1 align-top text-right text-[10px] text-slate-500 whitespace-nowrap">
-                          {formatDate(order.created_at)}
+                          {created || "—"}
                         </td>
                       </tr>
                     );
@@ -293,12 +245,12 @@ export default async function AdminPage() {
           )}
         </section>
 
-        <div className="mt-8 text-[11px] text-amber-300">
+        <div className="mt-6">
           <Link
             href="/"
-            className="inline-flex items-center gap-1 border-b border-amber-300/60 hover:border-amber-200"
+            className="text-[11px] text-amber-700 hover:text-amber-800 underline underline-offset-4"
           >
-            <span>← Back to studio</span>
+            ← Back to studio
           </Link>
         </div>
       </div>
