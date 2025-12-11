@@ -23,7 +23,7 @@ function CheckoutContent() {
   const router = useRouter();
 
   const [artworkId, setArtworkId] = useState<string | null>(null);
-  const [styleId, setStyleId] = useState<string | null>(null); // NEW
+  const [styleId, setStyleId] = useState<string | null>(null);
 
   const [customerName, setCustomerName] = useState("");
   const [email, setEmail] = useState("");
@@ -55,7 +55,7 @@ function CheckoutContent() {
 
     if (!artworkId) {
       setOrderError(
-        "No design found. Please go back to the studio and generate your flask art first."
+        "No design found. Please go back to the studio and create your PurePaw Flask design first."
       );
       return;
     }
@@ -71,7 +71,7 @@ function CheckoutContent() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           artworkId,
-          styleId, // 🔑 thread style into order
+          styleId,
           productType: DEFAULT_PRODUCT_TYPE,
           quantity,
           customerName,
@@ -108,9 +108,9 @@ function CheckoutContent() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          orderId: createdOrderId, // ✅ use the value we just got back
+          orderId: createdOrderId,
           artworkId,
-          styleId, // 🔑 thread style into Stripe metadata
+          styleId,
           email,
         }),
       });
@@ -151,116 +151,129 @@ function CheckoutContent() {
   const hasArtwork = !!artworkId;
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-50">
-      {/* Background gradient to match studio */}
-      <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top,_rgba(45,212,191,0.12)_0,transparent_55%),radial-gradient(circle_at_bottom,_rgba(15,23,42,1)_0,rgba(15,23,42,1)_55%)]" />
-
-      <div className="w-full max-w-3xl mx-auto px-4 py-10">
+    <main className="min-h-screen bg-[#f7f3ec] text-slate-900">
+      <div className="w-full max-w-3xl mx-auto px-4 py-10 md:py-12">
+        {/* Back link */}
         <button
           type="button"
           onClick={() => router.push("/")}
-          className="mb-6 text-xs text-slate-400 hover:text-slate-200 transition"
+          className="mb-6 text-xs text-slate-600 hover:text-slate-900 underline-offset-2 hover:underline transition"
         >
           ← Back to studio
         </button>
 
+        {/* Header */}
         <header className="mb-6">
-          <h1 className="text-2xl md:text-3xl font-semibold mb-2">
+          <p className="text-[11px] uppercase tracking-[0.25em] text-amber-600/80 mb-2">
             Secure checkout
+          </p>
+          <h1 className="text-2xl md:text-3xl font-semibold mb-2">
+            Finish your PurePaw Flask order
           </h1>
-          <p className="text-slate-300 text-sm md:text-base">
-            Confirm your shipping details and we&apos;ll redirect you to our
-            encrypted Stripe payment page.
+          <p className="text-slate-700 text-sm md:text-base">
+            You&apos;ve designed your flask. Now confirm your details and we’ll
+            take you to our encrypted Stripe checkout to complete your purchase.
           </p>
         </header>
 
-        <section className="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 md:p-6 space-y-4 shadow-[0_20px_60px_rgba(0,0,0,0.6)]">
-          <div className="text-[11px] text-slate-400 mb-2 space-y-1">
+        {/* Checkout card */}
+        <section className="bg-white border border-slate-200 rounded-2xl p-5 md:p-6 space-y-4 shadow-sm">
+          {/* Artwork + style summary */}
+          <div className="text-[11px] text-slate-600 mb-2 space-y-1">
             {hasArtwork ? (
               <>
                 <p>
                   Design linked ✓ Artwork ID:{" "}
-                  <span className="font-mono text-[10px] text-slate-200">
+                  <span className="font-mono text-[10px] text-slate-900">
                     {artworkId}
                   </span>
                 </p>
                 {styleId && (
                   <p>
                     Style:{" "}
-                    <span className="font-mono text-[10px] text-teal-300">
+                    <span className="font-mono text-[10px] text-amber-700">
                       {styleId}
                     </span>
                   </p>
                 )}
               </>
             ) : (
-              <p className="text-rose-300">
-                No design ID detected. Please return to the studio, generate
-                your flask art, and click &quot;Continue to checkout&quot;
+              <p className="text-rose-600">
+                No design ID detected. Please return to the studio, create your
+                PurePaw Flask design, and click &quot;Continue to checkout&quot;
                 again.
               </p>
             )}
           </div>
 
-          <div className="rounded-lg border border-slate-800 bg-slate-950/60 px-3 py-2 text-[11px] text-slate-300">
-            <p className="font-medium">Order summary</p>
-            <p className="mt-1 text-slate-400">
-              Product: Premium stainless steel flask with your custom AI pet
-              artwork.
+          {/* Order summary */}
+          <div className="rounded-lg border border-slate-200 bg-[#fdfaf4] px-3 py-2 text-[11px] text-slate-700">
+            <p className="font-medium text-slate-900">Order summary</p>
+            <p className="mt-1">
+              Product:{" "}
+              <span className="font-semibold">PurePaw Flask (500ml)</span>{" "}
+              – a double-walled stainless steel bottle with your pet&apos;s
+              portrait printed on the front.
             </p>
-            <p className="text-slate-500 mt-1">
-              Your artwork is already stored in our system and will be sent to
-              production once payment is complete.
+            <p className="mt-1">
+              Design: the artwork you just created in the studio will be used as
+              the final print on your flask.
+            </p>
+            <p className="text-slate-600 mt-1">
+              Once payment is complete, your order goes straight into
+              production and we&apos;ll email you updates as it moves through
+              printing and dispatch.
             </p>
           </div>
 
+          {/* Form */}
           <form
             onSubmit={handleSubmitOrder}
             className="space-y-3 text-[11px]"
           >
             <div className="grid grid-cols-1 gap-2">
               <div className="flex flex-col gap-1">
-                <label className="text-slate-300">Full name</label>
+                <label className="text-slate-800">Full name</label>
                 <input
                   type="text"
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
-                  className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1.5 text-xs outline-none focus:ring-2 focus:ring-sky-500"
+                  className="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs text-slate-900 outline-none focus:ring-2 focus:ring-amber-400"
                   placeholder="Name for shipping label"
                   disabled={!hasArtwork || isSubmittingOrder}
                 />
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-slate-300">Email</label>
+                <label className="text-slate-800">Email</label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1.5 text-xs outline-none focus:ring-2 focus:ring-sky-500"
-                  placeholder="We’ll send order updates here"
+                  className="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs text-slate-900 outline-none focus:ring-2 focus:ring-amber-400"
+                  placeholder="We’ll send your order updates here"
                   disabled={!hasArtwork || isSubmittingOrder}
                 />
               </div>
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="text-slate-300">Address line 1</label>
+              <label className="text-slate-800">Address line 1</label>
               <input
                 type="text"
                 value={addressLine1}
                 onChange={(e) => setAddressLine1(e.target.value)}
-                className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1.5 text-xs outline-none focus:ring-2 focus:ring-sky-500"
+                className="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs text-slate-900 outline-none focus:ring-2 focus:ring-amber-400"
                 placeholder="House number and street"
                 disabled={!hasArtwork || isSubmittingOrder}
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-slate-300">Address line 2</label>
+              <label className="text-slate-800">Address line 2</label>
               <input
                 type="text"
                 value={addressLine2}
                 onChange={(e) => setAddressLine2(e.target.value)}
-                className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1.5 text-xs outline-none focus:ring-2 focus:ring-sky-500"
+                className="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs text-slate-900 outline-none focus:ring-2 focus:ring-amber-400"
                 placeholder="Optional"
                 disabled={!hasArtwork || isSubmittingOrder}
               />
@@ -268,41 +281,41 @@ function CheckoutContent() {
 
             <div className="grid grid-cols-2 gap-2">
               <div className="flex flex-col gap-1">
-                <label className="text-slate-300">City</label>
+                <label className="text-slate-800">City</label>
                 <input
                   type="text"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
-                  className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1.5 text-xs outline-none focus:ring-2 focus:ring-sky-500"
+                  className="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs text-slate-900 outline-none focus:ring-2 focus:ring-amber-400"
                   disabled={!hasArtwork || isSubmittingOrder}
                 />
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-slate-300">Postcode</label>
+                <label className="text-slate-800">Postcode</label>
                 <input
                   type="text"
                   value={postcode}
                   onChange={(e) => setPostcode(e.target.value)}
-                  className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1.5 text-xs outline-none focus:ring-2 focus:ring-sky-500"
+                  className="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs text-slate-900 outline-none focus:ring-2 focus:ring-amber-400"
                   disabled={!hasArtwork || isSubmittingOrder}
                 />
               </div>
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="text-slate-300">Country</label>
+              <label className="text-slate-800">Country</label>
               <input
                 type="text"
                 value={country}
                 onChange={(e) => setCountry(e.target.value)}
-                className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1.5 text-xs outline-none focus:ring-2 focus:ring-sky-500"
+                className="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs text-slate-900 outline-none focus:ring-2 focus:ring-amber-400"
                 disabled={!hasArtwork || isSubmittingOrder}
               />
             </div>
 
             <div className="grid grid-cols-[1fr,1fr] gap-2 items-end">
               <div className="flex flex-col gap-1">
-                <label className="text-slate-300">Quantity</label>
+                <label className="text-slate-800">Quantity</label>
                 <input
                   type="number"
                   min={1}
@@ -310,20 +323,20 @@ function CheckoutContent() {
                   onChange={(e) =>
                     setQuantity(Math.max(1, Number(e.target.value) || 1))
                   }
-                  className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1.5 text-xs outline-none focus:ring-2 focus:ring-sky-500"
+                  className="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs text-slate-900 outline-none focus:ring-2 focus:ring-amber-400"
                   disabled={!hasArtwork || isSubmittingOrder}
                 />
               </div>
-              <div className="text-right text-[11px] text-slate-500">
-                <p>Product: Premium stainless flask</p>
-                <p className="opacity-70">SKU: {DEFAULT_PRODUCT_TYPE}</p>
+              <div className="text-right text-[11px] text-slate-600">
+                <p>Product: PurePaw Flask (500ml)</p>
+                <p className="opacity-70">Internal SKU: {DEFAULT_PRODUCT_TYPE}</p>
               </div>
             </div>
 
             <button
               type="submit"
               disabled={!hasArtwork || isSubmittingOrder}
-              className="mt-2 w-full rounded-lg bg-amber-400 text-slate-900 text-xs font-medium py-2.5 disabled:opacity-60 hover:bg-amber-300 transition"
+              className="mt-2 w-full rounded-lg bg-slate-900 text-slate-50 text-xs font-medium py-2.5 disabled:opacity-60 hover:bg-slate-800 transition"
             >
               {isSubmittingOrder
                 ? "Redirecting to secure payment…"
@@ -331,10 +344,10 @@ function CheckoutContent() {
             </button>
 
             {orderError && (
-              <p className="mt-2 text-[11px] text-rose-300">{orderError}</p>
+              <p className="mt-2 text-[11px] text-rose-600">{orderError}</p>
             )}
             {orderId && !orderError && (
-              <p className="mt-2 text-[11px] text-slate-400">
+              <p className="mt-2 text-[11px] text-slate-600">
                 Order created ✓ You&apos;ll complete payment on the secure
                 Stripe checkout page.
               </p>
