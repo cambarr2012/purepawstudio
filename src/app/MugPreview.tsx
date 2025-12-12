@@ -51,28 +51,12 @@ export default function MugPreview({
           }}
         >
           {imageUrl ? (
-            <div className="flex flex-col items-center justify-between w-full h-full">
-              {/* Art takes the top ~80% of the print area */}
-              <div className="flex items-center justify-center w-full h-[85%]">
-                <img
-                  src={imageUrl}
-                  alt="Pet flask artwork preview"
-                  className="max-h-full w-auto object-contain select-none"
-                />
-              </div>
-
-              {/* QR: fixed size, sits in the lower ~20% of the same print zone */}
-              <div className="flex items-start justify-center w-full h-[25%]">
-                <img
-                  src="/qr-placeholder.png"
-                  alt="QR code preview"
-                  className="h-[55%] aspect-square object-contain select-none"
-                  style={{
-                    mixBlendMode: "multiply",
-                    opacity: 0.96,
-                  }}
-                />
-              </div>
+            <div className="flex items-center justify-center w-full h-full">
+              <img
+                src={imageUrl}
+                alt="Pet flask artwork preview"
+                className="max-h-full w-auto object-contain select-none"
+              />
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center text-[11px] px-3 text-center rounded-xl bg-white/90 border border-slate-200 shadow-[0_10px_25px_rgba(15,23,42,0.06)]">

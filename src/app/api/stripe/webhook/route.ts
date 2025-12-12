@@ -1,6 +1,7 @@
 // src/app/api/stripe/webhook/route.ts
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export const runtime = "nodejs";
 
@@ -84,6 +85,36 @@ export async function POST(req: Request) {
         styleIdMeta,
       });
 
+      // 1) Update order row with Stripe session + paid status (if we know the order)
+      if (orderId) {
+        try {
+          const { error: updateError } = await supabaseAdmin
+            .from("orders")
+            .update({
+              stripe_session_id: session.id,
+              status: "paid",
+            })
+            .eq("order_id", orderId);
+
+          if (updateError) {
+            console.error(
+              "[webhook] Failed to update order with Stripe session:",
+              updateError
+            );
+          }
+        } catch (err) {
+          console.error(
+            "[webhook] Error while updating order with Stripe session:",
+            err
+          );
+        }
+      } else {
+        console.warn(
+          "[webhook] No orderId resolved – cannot update order with Stripe session."
+        );
+      }
+
+      // 2) Kick off print-file generation if we have everything we need
       if (!orderId) {
         console.warn(
           "[webhook] No orderId resolved – cannot generate print file."
@@ -147,6 +178,7 @@ export async function POST(req: Request) {
                 targetUrl: data.targetUrl,
               }
             );
+            // NOTE: generate-print-file already updates `print_file_url` + status in Supabase.
           }
         } catch (err) {
           console.error(
