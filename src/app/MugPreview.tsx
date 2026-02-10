@@ -23,6 +23,9 @@ export default function MugPreview({
 
   const styleLabel = styleId;
 
+  // Disney tends to fill frame more — clamp it slightly in preview
+  const previewScale = styleId === "disney" ? 0.88 : 1;
+
   return (
     <div className="w-full flex-1 flex items-center justify-center">
       <div
@@ -42,7 +45,7 @@ export default function MugPreview({
 
         {/* Print area */}
         <div
-          className="absolute flex items-center justify-center pointer-events-none"
+          className="absolute pointer-events-none"
           style={{
             top: `${PRINT_AREA_TOP_PERCENT}%`,
             left: `${PRINT_AREA_LEFT_PERCENT}%`,
@@ -51,21 +54,30 @@ export default function MugPreview({
           }}
         >
           {imageUrl ? (
-            <div className="flex items-center justify-center w-full h-full">
+            <div
+              className="w-full h-full"
+              style={{
+                transform: `scale(${previewScale})`,
+                transformOrigin: "center",
+              }}
+            >
               <img
                 src={imageUrl}
                 alt="Pet flask artwork preview"
-                className="max-h-full w-auto object-contain select-none"
+                className="w-full h-full object-contain select-none"
+                draggable={false}
               />
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center text-[11px] px-3 text-center rounded-xl bg-white/90 border border-slate-200 shadow-[0_10px_25px_rgba(15,23,42,0.06)]">
-              <span className="text-slate-800">
-                Your final design will appear on the flask here.
-              </span>
-              <span className="mt-1 text-slate-500">
-                Upload a photo, pass the quick check and create your design.
-              </span>
+            <div className="w-full h-full flex items-center justify-center">
+              <div className="flex flex-col items-center justify-center text-[11px] px-3 text-center rounded-xl bg-white/90 border border-slate-200 shadow-[0_10px_25px_rgba(15,23,42,0.06)]">
+                <span className="text-slate-800">
+                  Your final design will appear on the flask here.
+                </span>
+                <span className="mt-1 text-slate-500">
+                  Upload a photo, pass the quick check and create your design.
+                </span>
+              </div>
             </div>
           )}
         </div>

@@ -14,7 +14,7 @@ export async function GET() {
     ok: true,
     route: "/api/orders/generate-print-file",
     methods: ["POST"],
-    version: "v4-art-only-print-separate-qr-db-verify",
+    version: "v5-art-only-print-separate-qr-db-verify-alpha-polish",
   });
 }
 
@@ -46,9 +46,54 @@ function resolveBaseUrl(req: NextRequest) {
   );
 }
 
+/**
+ * Deterministic alpha polish for POD:
+ * - Feather: soften jagged edges slightly
+ * - "Grow": slightly expands alpha edge for better tolerance on curved products
+ *
+ * This avoids relying on the generator for perfect cutouts.
+ */
+async function polishAlphaEdges(
+  inputPng: Buffer,
+  opts?: { featherPx?: number; growPx?: number }
+): Promise<Buffer> {
+  const featherPx = Math.max(0, Math.min(6, opts?.featherPx ?? 1.5)); // safe range
+  const growPx = Math.max(0, Math.min(8, opts?.growPx ?? 3)); // safe range
+
+  const base = sharp(inputPng).ensureAlpha();
+  const meta = await base.metadata();
+
+  if (!meta.width || !meta.height) {
+    // If metadata fails, just return ensured-alpha PNG
+    return await base.png().toBuffer();
+  }
+
+  const width = meta.width;
+  const height = meta.height;
+
+  // Extract alpha channel, blur it (feather), then lower threshold slightly (grow)
+  // Lower threshold means more pixels become fully opaque => subtle expansion.
+  const threshold = Math.max(0, Math.min(255, 128 - Math.round(growPx * 18)));
+
+  const alphaBuffer = await sharp(inputPng)
+    .ensureAlpha()
+    .extractChannel("alpha")
+    .blur(featherPx)
+    .threshold(threshold)
+    .toBuffer();
+
+  // Apply the polished alpha back onto the original RGB
+  const rgb = await sharp(inputPng).ensureAlpha().removeAlpha().toBuffer();
+
+  return await sharp(rgb)
+    .joinChannel(alphaBuffer) // reattach alpha
+    .png()
+    .toBuffer();
+}
+
 export async function POST(req: NextRequest) {
   console.log(
-    "🔥 [generate-print-file] VERSION=v4 (ART ONLY PRINT + QR SEPARATE + DB VERIFY)"
+    "🔥 [generate-print-file] VERSION=v5 (ART ONLY PRINT + QR SEPARATE + DB VERIFY + ALPHA POLISH)"
   );
 
   try {
@@ -105,10 +150,16 @@ export async function POST(req: NextRequest) {
     }
     const artBuffer = Buffer.from(await artRes.arrayBuffer());
 
+    // 1b) Alpha edge polish (for smoother, more forgiving flask prints)
+    const polishedArtBuffer = await polishAlphaEdges(artBuffer, {
+      featherPx: 1.5,
+      growPx: 3,
+    });
+
     // 2) Build ART-ONLY print file
     const artRect = getArtRect();
 
-    const resizedArt = await sharp(artBuffer)
+    const resizedArt = await sharp(polishedArtBuffer)
       .resize({
         width: artRect.width,
         height: artRect.height,
@@ -195,7 +246,6 @@ export async function POST(req: NextRequest) {
     });
 
     // 5) Persist URLs to orders row (requires orderId)
-    // NOTE: we avoid `.select("...", {count})` to satisfy supabase-js typings.
     let dbMatchedOrder: boolean | null = null;
 
     if (orderId) {
@@ -213,7 +263,6 @@ export async function POST(req: NextRequest) {
         console.error("[generate-print-file] Orders update error:", updateError);
         dbMatchedOrder = null;
       } else {
-        // Verify the row exists (and gives you a reliable “matched” signal)
         const { data: verifyData, error: verifyError } = await supabaseAdmin
           .from("orders")
           .select("order_id")
@@ -244,7 +293,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         ok: true,
-        version: "v4-art-only-print-separate-qr-db-verify",
+        version: "v5-art-only-print-separate-qr-db-verify-alpha-polish",
         orderId: orderId ?? null,
         artworkId,
         artworkUrl,
