@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import MugPreview from "./MugPreview";
 import PhotoTipsAccordion from "./PhotoTipsAccordion";
+import { GenerationWheel } from "@/components/GenerationWheel";
 
 // --- Image compression helper (keeps payload under Vercel limits) ---
 async function compressImageToDataUrl(
@@ -130,7 +131,6 @@ async function compressBase64Image(
 // --- end helper ---
 
 type StyleId = "gangster" | "disney" | "girlboss";
-
 type QualityStatus = "good" | "warn" | "bad";
 
 type QualityResult = {
@@ -222,6 +222,14 @@ async function standardizeArtForFlask(imageBase64: string): Promise<string> {
   });
 }
 
+// Wheel step type (keep local so we don’t fight import mismatches)
+type GenStep =
+  | "remove_bg"
+  | "generate_art"
+  | "polish"
+  | "finalise"
+  | "prepare_preview";
+
 export default function HomePage() {
   const router = useRouter();
   const step1Ref = useRef<HTMLDivElement | null>(null);
@@ -246,6 +254,14 @@ export default function HomePage() {
   const [bgError, setBgError] = useState<string | null>(null);
 
   const [isGenerating, setIsGenerating] = useState(false);
+
+  // Wheel loader state
+  const [genStep, setGenStep] = useState<GenStep>("remove_bg");
+
+  // NEW: used to reset the GenerationWheel animation each time we start a generation
+  const [genRunId, setGenRunId] = useState<number>(0);
+
+  // Keep your existing certainty bar (used in UI)
   const [generateProgress, setGenerateProgress] = useState<number>(0);
 
   const [sliderValue, setSliderValue] = useState(50);
@@ -263,11 +279,6 @@ export default function HomePage() {
   const generationCount = designs.length;
   const activeDesign = designs[activeDesignIndex] ?? null;
   const generatedArtUrl = activeDesign?.imageUrl ?? null;
-
-  // DEBUG: log the current flask artwork data URL
-  if (generatedArtUrl) {
-    console.log("ARTWORK_DATA_URL", generatedArtUrl);
-  }
 
   async function saveArtwork(
     imageBase64: string
@@ -294,7 +305,6 @@ export default function HomePage() {
       }
 
       const json = (await res.json()) as SaveArtworkResponse;
-      console.log("Artwork saved:", json);
       return json;
     } catch (err) {
       console.error("Error saving artwork:", err);
@@ -310,7 +320,6 @@ export default function HomePage() {
   function handleGoToCheckout() {
     if (!artworkId) return;
 
-    // Prefer the style of the active design; fall back to current selector
     const styleForCheckout = activeDesign?.styleId ?? styleId;
 
     const query = new URLSearchParams({
@@ -328,7 +337,6 @@ export default function HomePage() {
     setSelectedFile(file);
 
     try {
-      // Compress the image before we do anything else
       const compressedDataUrl = await compressImageToDataUrl(file, {
         maxWidth: 1024,
         maxHeight: 1024,
@@ -336,26 +344,26 @@ export default function HomePage() {
         outputType: "image/jpeg",
       });
 
-      // Store compressed version as our source-of-truth base64
       setCompressedImageBase64(compressedDataUrl);
 
-      // Use compressed for preview
       setPreviewUrl(compressedDataUrl);
       setProcessedUrl(null);
 
-      // Reset everything else as before
       setQualityResult(null);
       setQualityError(null);
       setBgError(null);
       setSaveArtworkError(null);
+      setArtError(null);
 
       setSliderValue(50);
       setArtworkId(null);
       setCurrentStep(1);
 
-      // Reset designs
       setDesigns([]);
       setActiveDesignIndex(0);
+
+      setGenStep("remove_bg");
+      setGenerateProgress(0);
     } catch (err) {
       console.error("Failed to compress uploaded image:", err);
       const fallbackUrl = URL.createObjectURL(file);
@@ -390,7 +398,6 @@ export default function HomePage() {
       });
 
       const json = await res.json();
-      console.log("Quality result:", json);
 
       if (json.error) {
         setQualityError(json.error as string);
@@ -431,7 +438,6 @@ export default function HomePage() {
       });
 
       const json = await res.json();
-      console.log("Background optimisation result:", json);
 
       if (json.error) {
         setBgError(json.error as string);
@@ -466,16 +472,21 @@ export default function HomePage() {
 
     try {
       setIsGenerating(true);
+      setGenRunId(Date.now());
       setArtError(null);
-      setGenerateProgress(5);
+      setGenerateProgress(6);
       setArtworkId(null);
       setSaveArtworkError(null);
+
+      // Wheel start
+      setGenStep("remove_bg");
 
       let imageBase64: string;
 
       // 1) Prefer already processed (bg-removed) image if available
       if (processedUrl && processedUrl.startsWith("data:image")) {
         imageBase64 = processedUrl;
+        setGenStep("generate_art");
       } else {
         // 2) Otherwise use compressed upload (or compress on the fly as fallback)
         const base64Source =
@@ -493,6 +504,7 @@ export default function HomePage() {
 
         try {
           setGenerateProgress(20);
+          setGenStep("remove_bg");
 
           // Use compressed source for background removal inside generate
           const resBg = await fetch("/api/remove-background", {
@@ -502,7 +514,6 @@ export default function HomePage() {
           });
 
           const jsonBg = await resBg.json();
-          console.log("Auto photo optimisation in generate:", jsonBg);
 
           if (
             !resBg.ok ||
@@ -524,20 +535,19 @@ export default function HomePage() {
           );
           imageBase64 = base64Source;
         }
+
+        setGenStep("generate_art");
       }
 
-      // 🔽 FINAL SAFETY NET: compress whatever we ended up with before /api/generate-art
+      // FINAL SAFETY NET: compress before /api/generate-art
       try {
+        setGenStep("polish");
         const compressedForGenerate = await compressBase64Image(imageBase64, {
           maxWidth: 800,
           maxHeight: 800,
           quality: 0.65,
           outputType: "image/jpeg",
         });
-        console.log(
-          "Final imageBase64 length for /api/generate-art:",
-          compressedForGenerate.length
-        );
         imageBase64 = compressedForGenerate;
       } catch (err) {
         console.warn(
@@ -547,6 +557,7 @@ export default function HomePage() {
       }
 
       setGenerateProgress(55);
+      setGenStep("generate_art");
 
       const res = await fetch("/api/generate-art", {
         method: "POST",
@@ -568,7 +579,6 @@ export default function HomePage() {
       }
 
       const json = await res.json();
-      console.log("Generate art result:", json);
 
       if (json.error) {
         setArtError(
@@ -581,60 +591,55 @@ export default function HomePage() {
 
       if (typeof json.imageBase64 === "string") {
         setGenerateProgress(80);
+        setGenStep("polish");
+
         const standardized = await standardizeArtForFlask(json.imageBase64);
 
-        // Save artwork and attach to this design
+        setGenStep("finalise");
+        setGenerateProgress(90);
+
         const saved = await saveArtwork(standardized);
 
         const newDesign: GeneratedDesign = {
           id: `design-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-          // Prefer the Supabase URL if we have it; fall back to the local data URL as a backup
           imageUrl: saved?.imageUrl ?? standardized,
           artworkId: saved?.artworkId ?? null,
           styleId,
           createdAt: Date.now(),
         };
 
+        setGenStep("prepare_preview");
+        setGenerateProgress(96);
+
         setDesigns((prev) => {
           const next = [...prev, newDesign];
-          return next.slice(0, MAX_GENERATIONS_PER_PHOTO); // safety, though count is capped
+          return next.slice(0, MAX_GENERATIONS_PER_PHOTO);
         });
 
-        // Auto-select the newest design
-        setActiveDesignIndex((prevIndex) => {
-          const nextIndex = generationCount; // previous count is index of new design
-          return nextIndex;
-        });
+        setActiveDesignIndex(() => generationCount);
 
-        // Sync artworkId for checkout if we successfully saved
-        if (saved?.artworkId) {
-          setArtworkId(saved.artworkId);
-        } else {
-          setArtworkId(null);
-        }
+        if (saved?.artworkId) setArtworkId(saved.artworkId);
+        else setArtworkId(null);
 
         setSliderValue(50);
+
         setGenerateProgress(100);
       } else {
         setArtError("Unexpected response from design generator.");
         setGenerateProgress(0);
+        return;
       }
     } catch (error) {
       console.error("Error calling /api/generate-art:", error);
       setArtError("Something went wrong while creating the design.");
       setGenerateProgress(0);
     } finally {
-      setIsGenerating(false);
-      setTimeout(() => setGenerateProgress(0), 500);
+      setTimeout(() => {
+        setIsGenerating(false);
+        setGenerateProgress(0);
+      }, 450);
     }
   }
-
-  const styleButtonBase =
-    "rounded-lg border px-3 py-2 text-xs md:text-sm transition";
-  const activeStyleClasses =
-    "border-amber-400 bg-amber-50 text-amber-800 shadow-[0_0_0_1px_rgba(251,191,36,0.4)]";
-  const inactiveStyleClasses =
-    "border-slate-200 bg-white hover:border-slate-400";
 
   function getStatusStyles(status: QualityStatus) {
     switch (status) {
@@ -759,19 +764,6 @@ export default function HomePage() {
   const step1Active = currentStep === 1;
   const step2Active = currentStep === 2;
 
-  // For the 3-step generate loading labels
-  const generationStage =
-    generateProgress <= 0
-      ? 0
-      : generateProgress < 30
-      ? 1
-      : generateProgress < 75
-      ? 2
-      : 3;
-
-  const getStageLabelClass = (stage: number) =>
-    stage === generationStage ? "text-amber-600" : "text-slate-400";
-
   const stepLabelClass = (active: boolean) =>
     `text-[11px] ${active ? "text-amber-700" : "text-slate-400"}`;
 
@@ -780,17 +772,8 @@ export default function HomePage() {
   if (previewUrl) overallStep = 1;
   if (qualityResult && qualityResult.status !== "bad") overallStep = 2;
   if (generatedArtUrl) overallStep = 3;
-  if (canGoToCheckout) overallStep = 3; // still 3 main steps visually
+  if (canGoToCheckout) overallStep = 3;
   const overallProgress = ((overallStep - 1) / 3) * 100;
-
-  const generationChecklist = [
-    {
-      label: "Preparing your photo & cleaning the background",
-      minStage: 1,
-    },
-    { label: "Applying your chosen style", minStage: 2 },
-    { label: "Finalising print-ready file & preview", minStage: 3 },
-  ];
 
   function scrollToStep1() {
     if (step1Ref.current) {
@@ -1062,13 +1045,6 @@ export default function HomePage() {
                 )}
               </div>
 
-              {!qualityResult && previewUrl && (
-                <p className="mb-3 text-[11px] text-amber-600">
-                  Run the photo quality check first so we can correctly detect
-                  your pet&apos;s face.
-                </p>
-              )}
-
               {qualityResult?.status === "bad" && (
                 <p className="mb-3 text-[11px] text-rose-600">
                   This photo is unlikely to produce a good result. We recommend
@@ -1085,10 +1061,10 @@ export default function HomePage() {
                   <button
                     type="button"
                     onClick={() => handleStyleClick("gangster")}
-                    className={`${styleButtonBase} ${
+                    className={`rounded-lg border px-3 py-2 text-xs md:text-sm transition ${
                       styleId === "gangster"
-                        ? activeStyleClasses
-                        : inactiveStyleClasses
+                        ? "border-amber-400 bg-amber-50 text-amber-800 shadow-[0_0_0_1px_rgba(251,191,36,0.4)]"
+                        : "border-slate-200 bg-white hover:border-slate-400"
                     }`}
                   >
                     <span className="block">Gangster</span>
@@ -1099,10 +1075,10 @@ export default function HomePage() {
                   <button
                     type="button"
                     onClick={() => handleStyleClick("disney")}
-                    className={`${styleButtonBase} ${
+                    className={`rounded-lg border px-3 py-2 text-xs md:text-sm transition ${
                       styleId === "disney"
-                        ? activeStyleClasses
-                        : inactiveStyleClasses
+                        ? "border-amber-400 bg-amber-50 text-amber-800 shadow-[0_0_0_1px_rgba(251,191,36,0.4)]"
+                        : "border-slate-200 bg-white hover:border-slate-400"
                     }`}
                   >
                     <span className="block">Disney</span>
@@ -1113,10 +1089,10 @@ export default function HomePage() {
                   <button
                     type="button"
                     onClick={() => handleStyleClick("girlboss")}
-                    className={`${styleButtonBase} ${
+                    className={`rounded-lg border px-3 py-2 text-xs md:text-sm transition ${
                       styleId === "girlboss"
-                        ? activeStyleClasses
-                        : inactiveStyleClasses
+                        ? "border-amber-400 bg-amber-50 text-amber-800 shadow-[0_0_0_1px_rgba(251,191,36,0.4)]"
+                        : "border-slate-200 bg-white hover:border-slate-400"
                     }`}
                   >
                     <span className="block">Girlboss</span>
@@ -1158,57 +1134,32 @@ export default function HomePage() {
                   .
                 </p>
 
+                {/* Domino’s-style wheel loader */}
                 {isGenerating && (
-                  <div className="mt-2 space-y-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
-                    <p className="text-[11px] text-slate-800 font-medium">
-                      Creating your pet design… please keep this tab open.
-                    </p>
-                    <div className="h-1.5 w-full rounded-full bg-slate-200 overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-amber-300 via-amber-400 to-amber-200 transition-all duration-300"
-                        style={{
-                          width: `${Math.max(
-                            10,
-                            Math.min(generateProgress, 100)
-                          )}%`,
-                        }}
-                      />
-                    </div>
-                    <div className="flex justify-between text-[10px]">
-                      <span className={getStageLabelClass(1)}>
-                        1 · Preparing your photo
-                      </span>
-                      <span className={getStageLabelClass(2)}>
-                        2 · Applying style
-                      </span>
-                      <span className={getStageLabelClass(3)}>
-                        3 · Saving print file
-                      </span>
-                    </div>
+                  <div className="mt-3 rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                    <GenerationWheel
+                      step={genStep}
+                      styleLabel={styleId}
+                      runId={genRunId}
+                    />
 
-                    <ul className="mt-2 space-y-1 text-[11px] text-slate-500">
-                      {generationChecklist.map((item, idx) => {
-                        const active = generationStage >= item.minStage;
-                        return (
-                          <li key={idx} className="flex items-start gap-1.5">
-                            <span
-                              className={
-                                active ? "text-amber-600 mt-[1px]" : "mt-[1px]"
-                              }
-                            >
-                              {active ? "✓" : "•"}
-                            </span>
-                            <span
-                              className={
-                                active ? "text-slate-800" : "text-slate-500"
-                              }
-                            >
-                              {item.label}
-                            </span>
-                          </li>
-                        );
-                      })}
-                    </ul>
+                    <div className="px-4 pb-4">
+                      <div className="h-1.5 w-full rounded-full bg-slate-200 overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-amber-300 via-amber-400 to-amber-200 transition-all duration-300"
+                          style={{
+                            width: `${Math.max(
+                              10,
+                              Math.min(generateProgress, 100)
+                            )}%`,
+                          }}
+                        />
+                      </div>
+                      <p className="mt-2 text-[11px] text-slate-500 text-center">
+                        Please keep this tab open — we’re generating a custom
+                        design just for your pet.
+                      </p>
+                    </div>
                   </div>
                 )}
 
@@ -1373,6 +1324,7 @@ export default function HomePage() {
               </div>
             </div>
 
+            {/* BEFORE / AFTER SLIDER (kept) */}
             {sourcePreview && generatedArtUrl && (
               <div className="mt-6 pt-4 border-t border-slate-200">
                 <h3 className="text-xs font-medium text-slate-900 mb-2">
@@ -1448,6 +1400,7 @@ export default function HomePage() {
                   ? "Continue to checkout"
                   : "Create and select a saved design first"}
               </button>
+
               {artworkId &&
                 !canGoToCheckout &&
                 !artError &&
