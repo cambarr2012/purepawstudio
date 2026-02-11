@@ -9,8 +9,9 @@ interface CheckoutBody {
   id?: string; // some UIs send `id` instead
   artworkId?: string;
   artworkUrl?: string;
-  styleId?: string; // NEW
+  styleId?: string;
   email?: string;
+  // ignore any other fields
   [key: string]: unknown;
 }
 
@@ -20,7 +21,7 @@ export async function GET() {
     ok: true,
     route: "/api/checkout",
     methods: ["POST"],
-    mode: "stripe-inline-price",
+    mode: "stripe-price-id-single-qty",
   });
 }
 
@@ -40,23 +41,21 @@ export async function POST(req: NextRequest) {
         ? body.artworkId
         : "";
 
-    // 1️⃣ Try to read artworkUrl from body
+    // 1) Try to read artworkUrl from body
     let artworkUrl =
       body?.artworkUrl && typeof body.artworkUrl === "string"
         ? body.artworkUrl
         : undefined;
 
-    // 2️⃣ If missing, compute it from Supabase URL + bucket + artworkId
+    // 2) If missing, compute it from Supabase URL + bucket + artworkId
     const supabaseUrl = process.env.SUPABASE_URL;
     const artworksBucket =
       process.env.SUPABASE_ARTWORKS_BUCKET || "artworks";
 
     if (!artworkUrl && artworkId && supabaseUrl) {
+      // NOTE: keep your existing public path convention
       artworkUrl = `${supabaseUrl}/storage/v1/object/public/${artworksBucket}/artworks/${artworkId}.png`;
-      console.log(
-        "[checkout] Computed artworkUrl from artworkId:",
-        artworkUrl
-      );
+      console.log("[checkout] Computed artworkUrl from artworkId:", artworkUrl);
     }
 
     const email =
@@ -77,6 +76,7 @@ export async function POST(req: NextRequest) {
       "http://localhost:3000";
 
     const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+    const stripePriceId = process.env.STRIPE_PRICE_ID;
 
     if (!stripeSecretKey) {
       console.error("[checkout] Missing STRIPE_SECRET_KEY");
@@ -86,12 +86,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (!stripePriceId) {
+      console.error("[checkout] Missing STRIPE_PRICE_ID");
+      return NextResponse.json(
+        { error: "Stripe price is not configured on the server." },
+        { status: 500 }
+      );
+    }
+
     // Lazy import Stripe so this route never accidentally becomes edge
     const StripeModule = await import("stripe");
     const Stripe = StripeModule.default;
-    const stripe = new Stripe(stripeSecretKey);
+    const stripe = new Stripe(stripeSecretKey, { apiVersion: "2024-06-20" });
 
-    // Inline price for now – £19.99 GBP
     const metadata: Record<string, string | undefined> = {
       // camelCase – main path
       orderId,
@@ -105,23 +112,11 @@ export async function POST(req: NextRequest) {
       style_id: styleId,
     };
 
+    // Single quantity ONLY (ignore any quantity passed in)
     const sessionParams: any = {
       mode: "payment",
       client_reference_id: orderId,
-      line_items: [
-        {
-          price_data: {
-            currency: "gbp",
-            unit_amount: 1999, // £19.99 in pence
-            product_data: {
-              name: "Custom Pet Flask",
-              description:
-                "AI-generated pet artwork on a premium stainless steel flask",
-            },
-          },
-          quantity: 1,
-        },
-      ],
+      line_items: [{ price: stripePriceId, quantity: 1 }],
       success_url: `${siteUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${siteUrl}/cancel`,
       metadata,
@@ -132,26 +127,17 @@ export async function POST(req: NextRequest) {
     }
 
     const session = await stripe.checkout.sessions.create(sessionParams as any);
+
     console.log("[checkout] Session created:", session.id);
     console.log("[checkout] Session metadata:", session.metadata);
 
     if (!session.url) {
-      console.error(
-        "[checkout] Stripe session created without URL:",
-        session.id
-      );
+      console.error("[checkout] Stripe session created without URL:", session.id);
       return NextResponse.json(
         { error: "Failed to create checkout session." },
         { status: 500 }
       );
     }
-
-    console.log(
-      "[checkout] Created Stripe session",
-      session.id,
-      "for order",
-      orderId
-    );
 
     return NextResponse.json(
       {

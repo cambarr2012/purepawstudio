@@ -3,9 +3,9 @@
 
 import { useState, ChangeEvent, useRef } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import MugPreview from "./MugPreview";
 import PhotoTipsAccordion from "./PhotoTipsAccordion";
+import TopNav from "./TopNav";
 import { GenerationWheel } from "@/components/GenerationWheel";
 
 // --- Image compression helper (keeps payload under Vercel limits) ---
@@ -19,7 +19,7 @@ async function compressImageToDataUrl(
   }
 ): Promise<string> {
   const {
-    maxWidth = 1024, // more aggressive to avoid 413
+    maxWidth = 1024,
     maxHeight = 1024,
     quality = 0.7,
     outputType = "image/jpeg",
@@ -175,9 +175,7 @@ function fileToBase64(file: File): Promise<string> {
 
 async function standardizeArtForFlask(imageBase64: string): Promise<string> {
   return new Promise((resolve) => {
-    if (typeof window === "undefined") {
-      return resolve(imageBase64);
-    }
+    if (typeof window === "undefined") return resolve(imageBase64);
 
     const img = new Image();
     img.onload = () => {
@@ -187,10 +185,7 @@ async function standardizeArtForFlask(imageBase64: string): Promise<string> {
       canvas.height = CANVAS_SIZE;
       const ctx = canvas.getContext("2d");
 
-      if (!ctx) {
-        resolve(imageBase64);
-        return;
-      }
+      if (!ctx) return resolve(imageBase64);
 
       ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
@@ -214,15 +209,11 @@ async function standardizeArtForFlask(imageBase64: string): Promise<string> {
       resolve(standardized);
     };
 
-    img.onerror = () => {
-      resolve(imageBase64);
-    };
-
+    img.onerror = () => resolve(imageBase64);
     img.src = imageBase64 as string;
   });
 }
 
-// Wheel step type (keep local so we don’t fight import mismatches)
 type GenStep =
   | "remove_bg"
   | "generate_art"
@@ -245,23 +236,12 @@ export default function HomePage() {
     useState<string | null>(null);
 
   const [isChecking, setIsChecking] = useState(false);
-  const [qualityResult, setQualityResult] = useState<QualityResult | null>(
-    null
-  );
+  const [qualityResult, setQualityResult] = useState<QualityResult | null>(null);
   const [qualityError, setQualityError] = useState<string | null>(null);
 
-  const [isRemovingBg, setIsRemovingBg] = useState(false);
-  const [bgError, setBgError] = useState<string | null>(null);
-
   const [isGenerating, setIsGenerating] = useState(false);
-
-  // Wheel loader state
   const [genStep, setGenStep] = useState<GenStep>("remove_bg");
-
-  // NEW: used to reset the GenerationWheel animation each time we start a generation
   const [genRunId, setGenRunId] = useState<number>(0);
-
-  // Keep your existing certainty bar (used in UI)
   const [generateProgress, setGenerateProgress] = useState<number>(0);
 
   const [sliderValue, setSliderValue] = useState(50);
@@ -270,7 +250,6 @@ export default function HomePage() {
   const [isSavingArtwork, setIsSavingArtwork] = useState(false);
   const [saveArtworkError, setSaveArtworkError] = useState<string | null>(null);
 
-  // Multi-design support
   const [designs, setDesigns] = useState<GeneratedDesign[]>([]);
   const [activeDesignIndex, setActiveDesignIndex] = useState<number>(0);
 
@@ -309,7 +288,7 @@ export default function HomePage() {
     } catch (err) {
       console.error("Error saving artwork:", err);
       setSaveArtworkError(
-        "We created your design, but couldn’t save it yet. You can try again."
+        "We created your design, but couldn’t save it yet. Please try again."
       );
       return null;
     } finally {
@@ -321,7 +300,6 @@ export default function HomePage() {
     if (!artworkId) return;
 
     const styleForCheckout = activeDesign?.styleId ?? styleId;
-
     const query = new URLSearchParams({
       artworkId,
       styleId: styleForCheckout,
@@ -351,7 +329,6 @@ export default function HomePage() {
 
       setQualityResult(null);
       setQualityError(null);
-      setBgError(null);
       setSaveArtworkError(null);
       setArtError(null);
 
@@ -376,10 +353,7 @@ export default function HomePage() {
   }
 
   async function handleCheckQuality() {
-    if (!selectedFile) {
-      console.warn("No file selected");
-      return;
-    }
+    if (!selectedFile) return;
 
     try {
       setIsChecking(true);
@@ -409,6 +383,8 @@ export default function HomePage() {
 
       if (result.status !== "bad") {
         setCurrentStep(2);
+      } else {
+        setCurrentStep(1);
       }
     } catch (error) {
       console.error("Error calling /api/photo-quality:", error);
@@ -418,50 +394,8 @@ export default function HomePage() {
     }
   }
 
-  async function handleRemoveBackground() {
-    if (!selectedFile) {
-      console.warn("No file selected");
-      return;
-    }
-
-    try {
-      setIsRemovingBg(true);
-      setBgError(null);
-
-      const base64Source =
-        compressedImageBase64 ?? (await fileToBase64(selectedFile));
-
-      const res = await fetch("/api/remove-background", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageBase64: base64Source }),
-      });
-
-      const json = await res.json();
-
-      if (json.error) {
-        setBgError(json.error as string);
-        return;
-      }
-
-      if (typeof json.imageBase64 === "string") {
-        setProcessedUrl(json.imageBase64);
-      } else {
-        setBgError("Unexpected response while optimising your photo.");
-      }
-    } catch (error) {
-      console.error("Error calling /api/remove-background:", error);
-      setBgError("Something went wrong while preparing the photo.");
-    } finally {
-      setIsRemovingBg(false);
-    }
-  }
-
   async function handleGenerateArt() {
-    if (!selectedFile) {
-      console.warn("No file selected");
-      return;
-    }
+    if (!selectedFile) return;
 
     if (generationCount >= MAX_GENERATIONS_PER_PHOTO) {
       setArtError(
@@ -478,17 +412,14 @@ export default function HomePage() {
       setArtworkId(null);
       setSaveArtworkError(null);
 
-      // Wheel start
       setGenStep("remove_bg");
 
       let imageBase64: string;
 
-      // 1) Prefer already processed (bg-removed) image if available
+      // Prefer already processed image if available
       if (processedUrl && processedUrl.startsWith("data:image")) {
         imageBase64 = processedUrl;
-        setGenStep("generate_art");
       } else {
-        // 2) Otherwise use compressed upload (or compress on the fly as fallback)
         const base64Source =
           compressedImageBase64 ??
           (await compressImageToDataUrl(selectedFile, {
@@ -498,62 +429,22 @@ export default function HomePage() {
             outputType: "image/jpeg",
           }));
 
-        if (!compressedImageBase64) {
-          setCompressedImageBase64(base64Source);
-        }
+        if (!compressedImageBase64) setCompressedImageBase64(base64Source);
 
-        try {
-          setGenerateProgress(20);
-          setGenStep("remove_bg");
-
-          // Use compressed source for background removal inside generate
-          const resBg = await fetch("/api/remove-background", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ imageBase64: base64Source }),
-          });
-
-          const jsonBg = await resBg.json();
-
-          if (
-            !resBg.ok ||
-            jsonBg.error ||
-            typeof jsonBg.imageBase64 !== "string"
-          ) {
-            console.warn(
-              "Photo optimisation failed in generate, falling back to compressed source."
-            );
-            imageBase64 = base64Source;
-          } else {
-            imageBase64 = jsonBg.imageBase64;
-            setProcessedUrl(jsonBg.imageBase64);
-          }
-        } catch (err) {
-          console.error(
-            "Error auto-preparing photo in generate, falling back to compressed source:",
-            err
-          );
-          imageBase64 = base64Source;
-        }
-
-        setGenStep("generate_art");
+        imageBase64 = base64Source;
       }
 
-      // FINAL SAFETY NET: compress before /api/generate-art
+      // Safety compress before generate
       try {
         setGenStep("polish");
-        const compressedForGenerate = await compressBase64Image(imageBase64, {
+        imageBase64 = await compressBase64Image(imageBase64, {
           maxWidth: 800,
           maxHeight: 800,
           quality: 0.65,
           outputType: "image/jpeg",
         });
-        imageBase64 = compressedForGenerate;
       } catch (err) {
-        console.warn(
-          "Failed to compress base64 before /api/generate-art, using original:",
-          err
-        );
+        console.warn("Failed to compress before generate:", err);
       }
 
       setGenerateProgress(55);
@@ -562,18 +453,13 @@ export default function HomePage() {
       const res = await fetch("/api/generate-art", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          imageBase64,
-          styleId,
-        }),
+        body: JSON.stringify({ imageBase64, styleId }),
       });
 
       if (!res.ok) {
         const text = await res.text();
         console.error("Generate-art error:", res.status, text);
-        setArtError(
-          "Something went wrong while creating the design. Please try again."
-        );
+        setArtError("Something went wrong while creating the design. Try again.");
         setGenerateProgress(0);
         return;
       }
@@ -581,10 +467,7 @@ export default function HomePage() {
       const json = await res.json();
 
       if (json.error) {
-        setArtError(
-          json.error ||
-            "Something went wrong while creating the design. Please try again."
-        );
+        setArtError(json.error || "Something went wrong while creating the design.");
         setGenerateProgress(0);
         return;
       }
@@ -611,18 +494,12 @@ export default function HomePage() {
         setGenStep("prepare_preview");
         setGenerateProgress(96);
 
-        setDesigns((prev) => {
-          const next = [...prev, newDesign];
-          return next.slice(0, MAX_GENERATIONS_PER_PHOTO);
-        });
-
+        setDesigns((prev) => [...prev, newDesign].slice(0, MAX_GENERATIONS_PER_PHOTO));
         setActiveDesignIndex(() => generationCount);
 
         if (saved?.artworkId) setArtworkId(saved.artworkId);
-        else setArtworkId(null);
 
         setSliderValue(50);
-
         setGenerateProgress(100);
       } else {
         setArtError("Unexpected response from design generator.");
@@ -645,8 +522,7 @@ export default function HomePage() {
     switch (status) {
       case "good":
         return {
-          container:
-            "bg-emerald-50 border-emerald-200 text-emerald-800 shadow-sm",
+          container: "bg-emerald-50 border-emerald-200 text-emerald-800 shadow-sm",
           label: "text-emerald-800",
         };
       case "warn":
@@ -667,47 +543,37 @@ export default function HomePage() {
       return (
         <div className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">
           <p className="font-medium mb-1">Couldn&apos;t check this photo</p>
-          <p className="text-[11px] opacity-90">
-            {qualityError} — try again or upload a different image.
-          </p>
+          <p className="text-[11px] opacity-90">{qualityError}</p>
         </div>
       );
     }
 
     if (!qualityResult) return null;
 
-    const { score, status, face, sharpness, lighting, background } =
-      qualityResult;
+    const { score, status, face, sharpness, lighting, background } = qualityResult;
     const styles = getStatusStyles(status);
 
     let headline: string;
     let hint: string;
 
     if (status === "good") {
-      headline = "Great photo! This should work really well for your flask.";
-      hint =
-        "You can continue with this image — the face is clear enough for a detailed portrait.";
+      headline = "Great photo — perfect for a detailed portrait.";
+      hint = "You’re good to go. Next, choose a style and create your design.";
     } else if (status === "warn") {
-      headline = "This photo is okay, but could be improved.";
-      hint =
-        "Try a brighter shot with the pet closer to the camera and less background clutter for even better results.";
+      headline = "This photo will work, but the result may be softer.";
+      hint = "For best results: brighter light, closer face, and a simpler background.";
     } else {
-      headline = "This photo probably won’t produce a great result.";
-      hint =
-        "Please upload a new picture: ideally front-facing, sharp, and well-lit with a simple background.";
+      headline = "This photo is unlikely to produce a great result.";
+      hint = "Try a new photo: front-facing, sharp, well-lit, with minimal background clutter.";
     }
 
     return (
-      <div
-        className={`mt-3 rounded-lg border px-3 py-3 text-xs space-y-2 ${styles.container}`}
-      >
-        <div className="flex items-center justify-between gap-2">
-          <div>
-            <p className={`font-medium text-[13px] ${styles.label}`}>
-              Photo quality: {status.toUpperCase()} (score {score.toFixed(1)}/10)
-            </p>
-            <p className="text-[11px] opacity-90">{headline}</p>
-          </div>
+      <div className={`mt-3 rounded-lg border px-3 py-3 text-xs space-y-2 ${styles.container}`}>
+        <div>
+          <p className={`font-medium text-[13px] ${styles.label}`}>
+            Photo quality: {status.toUpperCase()} (score {score.toFixed(1)}/10)
+          </p>
+          <p className="text-[11px] opacity-90">{headline}</p>
         </div>
 
         <div className="grid grid-cols-2 gap-1 text-[11px] opacity-90">
@@ -730,36 +596,26 @@ export default function HomePage() {
     );
   }
 
-  const canGenerate =
-    !!selectedFile && !!qualityResult && qualityResult.status !== "bad";
+  const canGenerate = !!selectedFile && !!qualityResult && qualityResult.status !== "bad";
 
   const sourcePreview = processedUrl ?? previewUrl;
   const flaskPreview = generatedArtUrl;
 
-  const remainingGenerations =
-    MAX_GENERATIONS_PER_PHOTO - generationCount >= 0
-      ? MAX_GENERATIONS_PER_PHOTO - generationCount
-      : 0;
-
+  const remainingGenerations = Math.max(0, MAX_GENERATIONS_PER_PHOTO - generationCount);
   const hasArt = !!generatedArtUrl;
 
   const generateButtonLabel = isGenerating
-    ? "Creating your pet design…"
+    ? "Creating your design…"
     : hasArt
     ? remainingGenerations > 0
       ? `Try another style (${remainingGenerations} left)`
       : "Preview limit reached"
-    : "Create design for your flask";
+    : "Create my design";
 
-  const disableGenerateButton =
-    !canGenerate || isGenerating || generationCount >= MAX_GENERATIONS_PER_PHOTO;
+  const disableGenerateButton = !canGenerate || isGenerating || generationCount >= MAX_GENERATIONS_PER_PHOTO;
 
   const canGoToCheckout =
-    !!artworkId &&
-    !!generatedArtUrl &&
-    !isSavingArtwork &&
-    !saveArtworkError &&
-    !artError;
+    !!artworkId && !!generatedArtUrl && !isSavingArtwork && !saveArtworkError && !artError;
 
   const step1Active = currentStep === 1;
   const step2Active = currentStep === 2;
@@ -772,13 +628,10 @@ export default function HomePage() {
   if (previewUrl) overallStep = 1;
   if (qualityResult && qualityResult.status !== "bad") overallStep = 2;
   if (generatedArtUrl) overallStep = 3;
-  if (canGoToCheckout) overallStep = 3;
   const overallProgress = ((overallStep - 1) / 3) * 100;
 
   function scrollToStep1() {
-    if (step1Ref.current) {
-      step1Ref.current.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
+    step1Ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   const effectiveStyleForPreview = activeDesign?.styleId ?? styleId;
@@ -786,34 +639,8 @@ export default function HomePage() {
   return (
     <main className="min-h-screen bg-[#f7f3ec] text-slate-900">
       <div className="w-full max-w-6xl mx-auto px-4 py-8 md:py-12">
-        {/* Top nav with logo + links */}
-        <div className="mb-6 flex items-center justify-center sm:justify-between gap-6 rounded-full border border-slate-200 bg-white/80 px-6 md:px-8 py-2.5 md:py-3.5 backdrop-blur-sm shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
-          <div className="flex items-center justify-center sm:justify-start gap-3 w-full sm:w-auto">
-            <img
-              src="/purepawstudio-logo.png"
-              alt="PurePawStudio logo"
-              className="h-14 w-auto sm:h-16 object-contain select-none rounded-xl"
-            />
-          </div>
-
-          <nav className="hidden sm:flex items-center gap-8 text-[11px] text-slate-500">
-            <Link href="/shipping" className="hover:text-slate-900 transition">
-              Shipping
-            </Link>
-            <Link
-              href="/order-help"
-              className="hover:text-slate-900 transition"
-            >
-              Order help
-            </Link>
-            <Link
-              href="/orders"
-              className="px-3 py-1.5 rounded-full bg-slate-900 text-slate-50 border border-slate-900 hover:bg-slate-700 transition"
-            >
-              My orders
-            </Link>
-          </nav>
-        </div>
+        {/* Top nav */}
+        <TopNav />
 
         <header className="mb-6 text-center">
           <p className="hidden sm:block text-[11px] uppercase tracking-[0.25em] text-amber-600 mb-2">
@@ -823,31 +650,24 @@ export default function HomePage() {
             Design your personalised PurePaw Flask.
           </h1>
 
-          {/* Value / price chip */}
+          {/* Price chip */}
           <div className="mb-3 flex justify-center">
             <div className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] text-slate-700 shadow-sm">
               <span className="font-medium text-slate-900">From £19.99</span>
               <span className="mx-1.5 text-slate-300">·</span>
-              <span className="text-slate-500">
-                Stainless steel · UK fulfilment
-              </span>
+              <span className="text-slate-500">Stainless steel · UK fulfilment</span>
             </div>
           </div>
 
-          {/* Desktop/Tablet subcopy */}
+          {/* Copy */}
           <p className="hidden sm:block text-slate-600 max-w-2xl mx-auto text-sm md:text-base">
-            Turn your pet into a premium portrait on a stainless steel bottle,
-            with a scannable memory page tucked inside the QR. Upload a photo,
-            choose their personality and see your PurePaw Flask preview before
-            you order.
+            Upload a photo, choose your pet’s vibe and preview your flask before you order.
           </p>
-          {/* Mobile subcopy (shorter) */}
           <p className="sm:hidden text-slate-600 max-w-md mx-auto text-sm">
-            Upload a photo, choose your pet’s vibe and see your PurePaw Flask
-            preview before you order.
+            Upload a photo, choose a vibe, preview your flask.
           </p>
 
-          {/* Mobile: start here button */}
+          {/* Mobile: start */}
           <div className="mt-4 sm:hidden flex justify-center">
             <button
               type="button"
@@ -858,9 +678,20 @@ export default function HomePage() {
               <span className="text-[13px]">↓</span>
             </button>
           </div>
+
+          {/* Trust row */}
+          <div className="mt-4 flex justify-center">
+            <div className="text-[11px] text-slate-500 flex items-center gap-2">
+              <span>UK printing</span>
+              <span className="opacity-30">•</span>
+              <span>Secure checkout</span>
+              <span className="opacity-30">•</span>
+              <span>Tracked delivery</span>
+            </div>
+          </div>
         </header>
 
-        {/* Step indicator + overall progress */}
+        {/* Steps + progress */}
         <div className="mb-6 space-y-3">
           <div className="flex flex-wrap items-center justify-center gap-4 text-[11px]">
             <div className="flex items-center gap-2">
@@ -873,11 +704,11 @@ export default function HomePage() {
               >
                 1
               </span>
-              <span className={stepLabelClass(step1Active || step2Active)}>
-                Upload photo &amp; quick check
-              </span>
+              <span className={stepLabelClass(step1Active || step2Active)}>Upload photo</span>
             </div>
+
             <div className="hidden sm:block h-px w-6 bg-slate-300" />
+
             <div className="flex items-center gap-2">
               <span
                 className={`flex h-6 w-6 items-center justify-center rounded-full border text-xs ${
@@ -888,11 +719,11 @@ export default function HomePage() {
               >
                 2
               </span>
-              <span className={stepLabelClass(step2Active)}>
-                Choose style &amp; create design
-              </span>
+              <span className={stepLabelClass(step2Active)}>Choose style</span>
             </div>
+
             <div className="hidden sm:block h-px w-6 bg-slate-300" />
+
             <div className="flex items-center gap-2">
               <span
                 className={`flex h-6 w-6 items-center justify-center rounded-full border text-xs ${
@@ -903,20 +734,14 @@ export default function HomePage() {
               >
                 3
               </span>
-              <span className={stepLabelClass(canGoToCheckout)}>
-                Secure checkout
-              </span>
+              <span className={stepLabelClass(canGoToCheckout)}>Checkout</span>
             </div>
           </div>
 
-          {/* Mobile condensed text */}
           <p className="sm:hidden text-[11px] text-slate-500 text-center">
-            Step{" "}
-            <span className="font-semibold text-slate-800">{overallStep}</span>{" "}
-            of 3
+            Step <span className="font-semibold text-slate-800">{overallStep}</span> of 3
           </p>
 
-          {/* Overall progress bar */}
           <div className="h-1.5 w-full max-w-md mx-auto rounded-full bg-slate-200 border border-slate-200 overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-amber-300 via-amber-400 to-emerald-300 transition-all duration-300"
@@ -925,51 +750,31 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Mobile link row */}
-        <div className="mt-1 mb-5 flex sm:hidden justify-center gap-4 text-[11px] text-slate-500">
-          <Link href="/shipping" className="hover:text-slate-900 transition">
-            Shipping
-          </Link>
-          <span className="opacity-40">·</span>
-          <Link
-            href="/order-help"
-            className="hover:text-slate-900 transition"
-          >
-            Order help
-          </Link>
-          <span className="opacity-40">·</span>
-          <Link href="/orders" className="hover:text-slate-900 transition">
-            My orders
-          </Link>
-        </div>
-
         <div className="grid gap-8 md:grid-cols-[1.2fr,1fr] items-start">
-          {/* Left: controls */}
+          {/* Left */}
           <section
             ref={step1Ref}
             className="bg-white border border-slate-200 rounded-2xl p-5 md:p-6 space-y-6 shadow-[0_18px_45px_rgba(15,23,42,0.06)]"
           >
-            {/* STEP 1 */}
+            {/* Step 1 */}
             <div>
               <h2 className="text-lg font-medium mb-2 text-slate-900">
                 Step 1 · Upload your pet photo
               </h2>
 
-              <p className="text-[11px] text-slate-500 mb-2">
-                Works best with a sharp, front-facing photo of your pet&apos;s
-                face. Phone photos are perfect.
+              <p className="text-[11px] text-slate-500 mb-3">
+                Pick a sharp photo where your pet’s face is clear. Phone photos are perfect.
               </p>
 
-              <div className="space-y-2">
-                <h3 className="text-sm font-medium text-slate-900">
-                  Choose a clear photo
-                </h3>
+              <div className="space-y-3">
+                <h3 className="text-sm font-medium text-slate-900">Pick your favourite photo</h3>
+
                 <label className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center cursor-pointer hover:border-amber-400 hover:bg-amber-50/60 transition">
                   <span className="text-xs uppercase tracking-[0.16em] text-slate-500">
-                    Click to upload
+                    Tap to upload
                   </span>
                   <span className="text-[11px] text-slate-500 max-w-xs">
-                    Make sure your pet&apos;s face is visible and in focus.
+                    Make sure the face is visible and in focus.
                   </span>
                   <input
                     type="file"
@@ -978,36 +783,44 @@ export default function HomePage() {
                     onChange={handleFileChange}
                   />
                 </label>
+
                 {previewUrl && (
-                  <p className="text-[11px] text-amber-700 mt-1">
-                    Photo selected ✓ — next, run the quick quality check below.
-                  </p>
+                  <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-3">
+                    <div className="w-14 h-14 rounded-lg overflow-hidden border border-slate-200 bg-slate-50 flex-shrink-0">
+                      <img
+                        src={previewUrl}
+                        alt="Selected photo preview"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[12px] font-medium text-slate-900">
+                        Photo selected ✓
+                      </p>
+                      <p className="text-[11px] text-slate-500">
+                        Next: run the quick photo check below.
+                      </p>
+                    </div>
+                  </div>
                 )}
 
-                {/* Example / tips accordion */}
                 <PhotoTipsAccordion />
 
                 {renderQualityMessage()}
-
-                {bgError && (
-                  <p className="mt-2 text-[11px] text-rose-600">
-                    {bgError} Try again in a moment or check your credits.
-                  </p>
-                )}
               </div>
 
-              <div className="pt-4 border-t border-slate-200 mt-4">
+              {/* Step 2 */}
+              <div className="pt-5 border-t border-slate-200 mt-5">
                 <h3 className="text-sm font-medium text-slate-900 mb-2">
-                  Step 2 · Run a quick photo check
+                  Step 2 · Quick photo check
                 </h3>
+
                 <button
                   className="w-full rounded-xl bg-amber-400 px-4 py-3 text-sm font-medium text-slate-900 hover:bg-amber-300 transition disabled:opacity-60 disabled:hover:bg-amber-400"
                   onClick={handleCheckQuality}
                   disabled={!previewUrl || isChecking}
                 >
-                  {isChecking
-                    ? "Checking photo quality…"
-                    : "Run photo quality check"}
+                  {isChecking ? "Checking photo…" : "Check this photo"}
                 </button>
 
                 {isChecking && (
@@ -1016,196 +829,164 @@ export default function HomePage() {
                       <div className="h-full w-1/2 bg-amber-300/90 animate-pulse" />
                     </div>
                     <p className="mt-1 text-[11px] text-slate-500 text-center">
-                      Looking at face, sharpness, lighting and background…
+                      Checking face, clarity, lighting and background…
                     </p>
                   </div>
                 )}
 
                 <p className="mt-2 text-[11px] text-slate-500 text-center">
-                  We do a quick quality check so your pet looks sharp, clear and
-                  print-ready on the flask.
+                  This helps ensure your pet looks sharp and print-ready.
                 </p>
               </div>
             </div>
 
-            {/* STEP 3 */}
-            <div
-              className={`pt-4 border-t border-slate-200 ${
-                step1Active ? "opacity-40 pointer-events-none" : ""
-              }`}
-            >
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-lg font-medium text-slate-900">
-                  Step 3 · Choose their personality &amp; create your design
-                </h2>
-                {step1Active && (
-                  <span className="text-[10px] text-amber-600">
-                    Run the quality check above to unlock this step.
-                  </span>
-                )}
-              </div>
+            {/* Step 3 (clean locked state) */}
+            <div className="pt-5 border-t border-slate-200">
+              <h2 className="text-lg font-medium text-slate-900">
+                Step 3 · Choose a style &amp; create your design
+              </h2>
 
-              {qualityResult?.status === "bad" && (
-                <p className="mb-3 text-[11px] text-rose-600">
-                  This photo is unlikely to produce a good result. We recommend
-                  uploading a clearer, better-lit picture before creating your
-                  design.
-                </p>
+              {/* Lock callout (no overlap / no inline note) */}
+              {step1Active && (
+                <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-3">
+                  <p className="text-[12px] font-medium text-amber-900">
+                    Run the photo check above to unlock this step.
+                  </p>
+                  <p className="text-[11px] text-amber-800 opacity-90">
+                    Once it passes, you’ll be able to create your flask design.
+                  </p>
+                </div>
               )}
 
-              <div className="space-y-2">
-                <h3 className="text-sm font-medium text-slate-900">
-                  Choose a style
-                </h3>
-                <div className="grid grid-cols-3 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => handleStyleClick("gangster")}
-                    className={`rounded-lg border px-3 py-2 text-xs md:text-sm transition ${
-                      styleId === "gangster"
-                        ? "border-amber-400 bg-amber-50 text-amber-800 shadow-[0_0_0_1px_rgba(251,191,36,0.4)]"
-                        : "border-slate-200 bg-white hover:border-slate-400"
-                    }`}
-                  >
-                    <span className="block">Gangster</span>
-                    <span className="block text-[10px] text-slate-500">
-                      Gold chain, cool vibe
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleStyleClick("disney")}
-                    className={`rounded-lg border px-3 py-2 text-xs md:text-sm transition ${
-                      styleId === "disney"
-                        ? "border-amber-400 bg-amber-50 text-amber-800 shadow-[0_0_0_1px_rgba(251,191,36,0.4)]"
-                        : "border-slate-200 bg-white hover:border-slate-400"
-                    }`}
-                  >
-                    <span className="block">Disney</span>
-                    <span className="block text-[10px] text-slate-500">
-                      Movie-style magic
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleStyleClick("girlboss")}
-                    className={`rounded-lg border px-3 py-2 text-xs md:text-sm transition ${
-                      styleId === "girlboss"
-                        ? "border-amber-400 bg-amber-50 text-amber-800 shadow-[0_0_0_1px_rgba(251,191,36,0.4)]"
-                        : "border-slate-200 bg-white hover:border-slate-400"
-                    }`}
-                  >
-                    <span className="block">Girlboss</span>
-                    <span className="block text-[10px] text-slate-500">
-                      Lashes &amp; glam
-                    </span>
-                  </button>
-                </div>
-              </div>
+              {/* Content: collapse when locked for cleanliness */}
+              {!step1Active && (
+                <>
+                  {qualityResult?.status === "bad" && (
+                    <p className="mt-3 text-[11px] text-rose-600">
+                      This photo is unlikely to produce a good result. Try a clearer, better-lit photo.
+                    </p>
+                  )}
 
-              <div className="space-y-2 pt-4">
-                <h3 className="text-sm font-medium text-slate-900">
-                  Create your flask design
-                </h3>
-                <button
-                  type="button"
-                  onClick={handleGenerateArt}
-                  disabled={disableGenerateButton}
-                  className={`w-full rounded-xl px-4 py-3 text-sm font-medium text-slate-900 transition disabled:opacity-60 ${
-                    isGenerating
-                      ? "bg-gradient-to-r from-amber-300 via-amber-400 to-amber-200 shadow-[0_0_25px_rgba(251,191,36,0.4)]"
-                      : "bg-amber-400 hover:bg-amber-300"
-                  }`}
-                >
-                  {generateButtonLabel}
-                </button>
+                  <div className="space-y-3 mt-4">
+                    <h3 className="text-sm font-medium text-slate-900">Choose a vibe</h3>
 
-                <p className="text-[11px] text-amber-700 font-medium">
-                  Usually ready in{" "}
-                  <span className="font-semibold">under a minute</span>,
-                  depending on your photo.
-                </p>
+                    <div className="grid grid-cols-3 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => handleStyleClick("gangster")}
+                        className={`rounded-lg border px-3 py-2 text-xs md:text-sm transition ${
+                          styleId === "gangster"
+                            ? "border-amber-400 bg-amber-50 text-amber-800 shadow-[0_0_0_1px_rgba(251,191,36,0.4)]"
+                            : "border-slate-200 bg-white hover:border-slate-400"
+                        }`}
+                      >
+                        <span className="block">Gangster</span>
+                        <span className="block text-[10px] text-slate-500">Gold chain, cool vibe</span>
+                      </button>
 
-                <p className="text-[11px] text-slate-500">
-                  Designs created:{" "}
-                  <span className="font-semibold">
-                    {generationCount}/{MAX_GENERATIONS_PER_PHOTO}
-                  </span>
-                  .
-                </p>
+                      <button
+                        type="button"
+                        onClick={() => handleStyleClick("disney")}
+                        className={`rounded-lg border px-3 py-2 text-xs md:text-sm transition ${
+                          styleId === "disney"
+                            ? "border-amber-400 bg-amber-50 text-amber-800 shadow-[0_0_0_1px_rgba(251,191,36,0.4)]"
+                            : "border-slate-200 bg-white hover:border-slate-400"
+                        }`}
+                      >
+                        <span className="block">Disney</span>
+                        <span className="block text-[10px] text-slate-500">Movie-style magic</span>
+                      </button>
 
-                {/* Domino’s-style wheel loader */}
-                {isGenerating && (
-                  <div className="mt-3 rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-                    <GenerationWheel
-                      step={genStep}
-                      styleLabel={styleId}
-                      runId={genRunId}
-                    />
+                      <button
+                        type="button"
+                        onClick={() => handleStyleClick("girlboss")}
+                        className={`rounded-lg border px-3 py-2 text-xs md:text-sm transition ${
+                          styleId === "girlboss"
+                            ? "border-amber-400 bg-amber-50 text-amber-800 shadow-[0_0_0_1px_rgba(251,191,36,0.4)]"
+                            : "border-slate-200 bg-white hover:border-slate-400"
+                        }`}
+                      >
+                        <span className="block">Girlboss</span>
+                        <span className="block text-[10px] text-slate-500">Lashes &amp; glam</span>
+                      </button>
+                    </div>
 
-                    <div className="px-4 pb-4">
-                      <div className="h-1.5 w-full rounded-full bg-slate-200 overflow-hidden">
-                        <div
-                          className="h-full bg-gradient-to-r from-amber-300 via-amber-400 to-amber-200 transition-all duration-300"
-                          style={{
-                            width: `${Math.max(
-                              10,
-                              Math.min(generateProgress, 100)
-                            )}%`,
-                          }}
-                        />
-                      </div>
-                      <p className="mt-2 text-[11px] text-slate-500 text-center">
-                        Please keep this tab open — we’re generating a custom
-                        design just for your pet.
+                    <div className="space-y-2 pt-2">
+                      <h3 className="text-sm font-medium text-slate-900">Create your design</h3>
+
+                      <button
+                        type="button"
+                        onClick={handleGenerateArt}
+                        disabled={disableGenerateButton}
+                        className={`w-full rounded-xl px-4 py-3 text-sm font-medium text-slate-900 transition disabled:opacity-60 ${
+                          isGenerating
+                            ? "bg-gradient-to-r from-amber-300 via-amber-400 to-amber-200 shadow-[0_0_25px_rgba(251,191,36,0.4)]"
+                            : "bg-amber-400 hover:bg-amber-300"
+                        }`}
+                      >
+                        {generateButtonLabel}
+                      </button>
+
+                      <p className="text-[11px] text-slate-500">
+                        Usually ready shortly — depends on your photo.
                       </p>
+
+                      <p className="text-[11px] text-slate-500">
+                        Designs created:{" "}
+                        <span className="font-semibold">{generationCount}/{MAX_GENERATIONS_PER_PHOTO}</span>.
+                      </p>
+
+                      {isGenerating && (
+                        <div className="mt-3 rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                          <GenerationWheel step={genStep} styleLabel={styleId} runId={genRunId} />
+
+                          <div className="px-4 pb-4">
+                            <div className="h-1.5 w-full rounded-full bg-slate-200 overflow-hidden">
+                              <div
+                                className="h-full bg-gradient-to-r from-amber-300 via-amber-400 to-amber-200 transition-all duration-300"
+                                style={{
+                                  width: `${Math.max(10, Math.min(generateProgress, 100))}%`,
+                                }}
+                              />
+                            </div>
+                            <p className="mt-2 text-[11px] text-slate-500 text-center">
+                              Please keep this tab open — we’re creating a custom design for your pet.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      <p className="mt-1 text-[11px] text-slate-500">
+                        We keep your pet’s unique face and markings and prepare a print-ready design for your flask.
+                      </p>
+
+                      {artError && <p className="text-[11px] text-rose-600">{artError}</p>}
+
+                      {generatedArtUrl && !artError && (
+                        <p className="text-[11px] text-emerald-700">
+                          Design created ✓ — your flask preview on the right is updated.
+                        </p>
+                      )}
+
+                      {isSavingArtwork && (
+                        <p className="text-[11px] text-slate-500">
+                          Saving your design…
+                        </p>
+                      )}
+
+                      {saveArtworkError && (
+                        <p className="text-[11px] text-rose-600">
+                          {saveArtworkError}
+                        </p>
+                      )}
                     </div>
                   </div>
-                )}
-
-                <p className="mt-1 text-[11px] text-slate-500">
-                  We keep your pet&apos;s unique face and markings, apply the
-                  style you chose and prepare a print-ready design for your
-                  PurePaw Flask.
-                </p>
-                <p className="text-[11px] text-slate-500">
-                  You can create up to{" "}
-                  <span className="font-semibold">
-                    {MAX_GENERATIONS_PER_PHOTO}
-                  </span>{" "}
-                  style variations per photo during preview.
-                </p>
-                {artError && (
-                  <p className="text-[11px] text-rose-600">{artError}</p>
-                )}
-                {generatedArtUrl && !artError && (
-                  <p className="text-[11px] text-amber-700">
-                    Design created ✓ — the flask on the right now shows your
-                    current selected design.
-                  </p>
-                )}
-                {generatedArtUrl && artworkId && !saveArtworkError && (
-                  <p className="text-[11px] text-amber-700">
-                    Design saved ✓ (Artwork ID:{" "}
-                    <span className="font-mono text-[10px]">{artworkId}</span>).
-                    We&apos;ll use this design for checkout.
-                  </p>
-                )}
-                {isSavingArtwork && (
-                  <p className="text-[11px] text-slate-500">
-                    Saving your print-ready design…
-                  </p>
-                )}
-                {saveArtworkError && (
-                  <p className="text-[11px] text-rose-600">
-                    {saveArtworkError}
-                  </p>
-                )}
-              </div>
+                </>
+              )}
             </div>
           </section>
 
-          {/* Right: previews + CTA */}
+          {/* Right */}
           <section className="bg-white border border-slate-200 rounded-2xl p-5 md:p-6 flex flex-col shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
             <h2 className="text-sm font-medium mb-4 text-slate-900">
               Live PurePaw Flask preview
@@ -1218,36 +999,32 @@ export default function HomePage() {
             />
 
             <p className="mt-4 text-[11px] text-slate-500">
-              Selected style:{" "}
+              Selected vibe:{" "}
               <span className="text-slate-900 font-medium capitalize">
-                {effectiveStyleForPreview === "disney"
-                  ? "Disney"
-                  : effectiveStyleForPreview}
+                {effectiveStyleForPreview === "disney" ? "Disney" : effectiveStyleForPreview}
               </span>
             </p>
-            {generatedArtUrl && (
+
+            {generatedArtUrl ? (
               <p className="mt-1 text-[11px] text-amber-700">
-                This design is what will be printed on your flask when you
-                continue to checkout.
+                This is the design that will be printed on your flask.
               </p>
-            )}
-            {!generatedArtUrl && (
+            ) : (
               <p className="mt-1 text-[11px] text-slate-500">
-                Once you create your design, your final flask preview will
-                appear here.
+                Create your design to see the final flask preview here.
               </p>
             )}
 
-            {/* Design gallery / selector */}
+            {/* Design selector */}
             {designs.length > 1 && (
               <div className="mt-5 pt-4 border-t border-slate-200">
                 <h3 className="text-xs font-medium text-slate-900 mb-1">
                   Your created designs
                 </h3>
                 <p className="text-[11px] text-slate-500 mb-2">
-                  Tap a design to preview it on the flask and use it for
-                  checkout.
+                  Tap a design to preview it and use it for checkout.
                 </p>
+
                 <div className="flex gap-2 overflow-x-auto pb-1">
                   {designs.map((design, index) => {
                     const isActive = index === activeDesignIndex;
@@ -1258,11 +1035,7 @@ export default function HomePage() {
                         onClick={() => {
                           setActiveDesignIndex(index);
                           setSliderValue(50);
-                          if (design.artworkId) {
-                            setArtworkId(design.artworkId);
-                          } else {
-                            setArtworkId(null);
-                          }
+                          setArtworkId(design.artworkId ?? null);
                         }}
                         className={`relative flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden border ${
                           isActive
@@ -1276,14 +1049,8 @@ export default function HomePage() {
                           className="w-full h-full object-contain"
                         />
                         <div className="absolute bottom-0 inset-x-0 px-1 py-[2px] bg-black/40 flex items-center justify-between">
-                          <span className="text-[9px] text-slate-50">
-                            #{index + 1}
-                          </span>
-                          {isActive && (
-                            <span className="text-[9px] text-amber-200">
-                              Selected
-                            </span>
-                          )}
+                          <span className="text-[9px] text-slate-50">#{index + 1}</span>
+                          {isActive && <span className="text-[9px] text-amber-200">Selected</span>}
                         </div>
                       </button>
                     );
@@ -1292,44 +1059,40 @@ export default function HomePage() {
               </div>
             )}
 
+            {/* Source preview */}
             <div className="mt-6 pt-4 border-t border-slate-200">
               <h3 className="text-xs font-medium text-slate-900 mb-2">
-                Source photo preview
+                Your photo
               </h3>
-              <div className="flex items-center gap-3">
+
+              <div className="flex items-start gap-3">
                 {sourcePreview ? (
-                  <div className="relative w-28 h-28 rounded-xl overflow-hidden border border-slate-200 bg-slate-50">
+                  <div className="relative w-28 h-28 rounded-xl overflow-hidden border border-slate-200 bg-slate-50 flex-shrink-0">
                     <img
                       src={sourcePreview}
                       alt="Original pet photo preview"
                       className="w-full h-full object-cover"
                     />
-                    {processedUrl && (
-                      <span className="absolute bottom-1 left-1 right-1 text-[9px] text-center rounded-full bg-emerald-100/90 text-emerald-700 border border-emerald-200 px-1 py-[2px]">
-                        Photo optimised for best results
-                      </span>
-                    )}
                   </div>
                 ) : (
                   <p className="text-[11px] text-slate-500">
-                    Upload a photo on the left to see your reference image here.
+                    Upload a photo to see it here.
                   </p>
                 )}
+
                 <p className="text-[11px] text-slate-500">
-                  This is the photo we use as the reference for your pet. We
-                  keep the face and markings, apply your chosen style and place
-                  the portrait on the flask — with a hidden QR that opens their
-                  own memory page.
+                  We use your photo as the reference, keep the face and markings, and apply the style you choose.
                 </p>
               </div>
             </div>
 
-            {/* BEFORE / AFTER SLIDER (kept) */}
+            {/* Before/after slider */}
             {sourcePreview && generatedArtUrl && (
               <div className="mt-6 pt-4 border-t border-slate-200">
                 <h3 className="text-xs font-medium text-slate-900 mb-2">
-                  Style before / after (preview only)
+                  Before / after (preview)
                 </h3>
+
                 <div
                   className="max-w-sm select-none"
                   onContextMenu={(e) => e.preventDefault()}
@@ -1340,6 +1103,7 @@ export default function HomePage() {
                       alt="Before"
                       className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
                     />
+
                     <div
                       className="absolute inset-0 overflow-hidden pointer-events-none"
                       style={{ width: `${sliderValue}%` }}
@@ -1350,6 +1114,7 @@ export default function HomePage() {
                         className="w-full h-full object-contain bg-slate-900 pointer-events-none select-none"
                       />
                     </div>
+
                     <div
                       className="absolute inset-y-0 flex items-center justify-center pointer-events-none"
                       style={{ left: `calc(${sliderValue}% - 1px)` }}
@@ -1359,62 +1124,48 @@ export default function HomePage() {
 
                     <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
                       <span className="text-[10px] md:text-xs tracking-[0.18em] uppercase font-semibold text-white/90 bg-black/55 px-4 py-1.5 rounded-full backdrop-blur">
-                        Preview only · Final portrait after checkout
+                        Preview only
                       </span>
                     </div>
                   </div>
+
                   <input
                     type="range"
                     min={0}
                     max={100}
                     value={sliderValue}
-                    onChange={(e) =>
-                      setSliderValue(Number(e.target.value) || 0)
-                    }
+                    onChange={(e) => setSliderValue(Number(e.target.value) || 0)}
                     className="mt-3 w-full cursor-pointer accent-amber-400"
                   />
+
                   <p className="mt-1 text-[11px] text-slate-500">
-                    Drag to compare your original photo with the styled
-                    portrait. The full, print-ready file is prepared after
-                    checkout.
+                    Drag to compare your photo with the styled portrait.
                   </p>
                 </div>
               </div>
             )}
 
+            {/* Checkout */}
             <div className="mt-6 pt-4 border-t border-slate-200">
               <h3 className="text-xs font-medium text-slate-900 mb-2">
-                Step 3 · Secure checkout
+                Step 3 · Checkout
               </h3>
+
               <p className="text-[11px] text-slate-500 mb-3">
-                Happy with your preview? Continue to our secure checkout page
-                to confirm your details and pay.
+                When you’re happy with your preview, continue to secure checkout.
               </p>
+
               <button
                 type="button"
                 disabled={!canGoToCheckout}
                 onClick={handleGoToCheckout}
                 className="w-full rounded-lg bg-slate-900 text-white text-xs font-medium py-2.5 disabled:opacity-60 hover:bg-slate-900 transition"
               >
-                {canGoToCheckout
-                  ? "Continue to checkout"
-                  : "Create and select a saved design first"}
+                {canGoToCheckout ? "Continue to checkout" : "Create a saved design first"}
               </button>
 
-              {artworkId &&
-                !canGoToCheckout &&
-                !artError &&
-                !saveArtworkError && (
-                  <p className="mt-2 text-[11px] text-slate-500">
-                    We&apos;re just finishing up your design. Once it&apos;s
-                    fully ready, you&apos;ll be able to head to checkout.
-                  </p>
-                )}
-
               <p className="mt-3 text-[10px] text-slate-500 text-center">
-                Powered by{" "}
-                <span className="font-semibold text-slate-800">Stripe</span> ·
-                Encrypted checkout
+                Powered by <span className="font-semibold text-slate-800">Stripe</span> · Encrypted checkout
               </p>
             </div>
           </section>
