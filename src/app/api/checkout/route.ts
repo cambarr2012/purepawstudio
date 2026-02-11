@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
     // Lazy import Stripe so this route never accidentally becomes edge
     const StripeModule = await import("stripe");
     const Stripe = StripeModule.default;
-    const stripe = new Stripe(stripeSecretKey, { apiVersion: "2024-06-20" });
+    const stripe = new Stripe(stripeSecretKey);
 
     const metadata: Record<string, string | undefined> = {
       // camelCase – main path
