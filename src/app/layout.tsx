@@ -18,12 +18,22 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// IMPORTANT: remove static metadata or convert it to dynamic form
-// Static metadata forces static optimisation.
 export const metadata: Metadata = {
-  title: "PurePawStudio",
-  description: "Create AI pet artwork on premium bottles",
+  title: {
+    default: "PurePawStudio",
+    template: "%s · PurePawStudio",
+  },
+  description:
+    "Personalised stainless steel flasks featuring your pet’s portrait. Made to order with UK fulfilment.",
+  icons: {
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/icon.png", type: "image/png", sizes: "512x512" },
+    ],
+    apple: [{ url: "/apple-icon.png", sizes: "180x180" }],
+  },
 };
+
 
 export default function RootLayout({
   children,
