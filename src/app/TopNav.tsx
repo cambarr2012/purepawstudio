@@ -25,6 +25,20 @@ export default function TopNav() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [open]);
 
+  // Desktop pills
+  const pillBase = "px-4 py-2 rounded-full border text-[11px] transition shadow-sm";
+  const pillNeutral =
+    `${pillBase} border-amber-200/70 bg-white/80 text-slate-700 hover:bg-white hover:border-amber-300`;
+  const pillAccent =
+    `${pillBase} border-amber-400 bg-white/80 text-slate-900 hover:bg-white hover:border-amber-500`;
+
+  // Drawer cards
+  const cardBase = "block rounded-2xl border p-3 transition";
+  const cardNeutral =
+    `${cardBase} border-amber-200/60 bg-white hover:bg-amber-50/40`;
+  const cardAccent =
+    `${cardBase} border-amber-400 bg-white hover:bg-amber-50/60`;
+
   return (
     <>
       {/* FIXED TOP BAR */}
@@ -40,23 +54,20 @@ export default function TopNav() {
               <img
                 src="/purepawstudio-logo.png"
                 alt="PurePawStudio logo"
-                className="h-10 w-auto sm:h-12 object-contain rounded-xl"
+                className="h-[60px] w-auto sm:h-[78px] object-contain rounded-xl"
                 draggable={false}
               />
             </Link>
 
-            {/* Desktop nav */}
-            <nav className="hidden sm:flex items-center gap-8 text-[11px] text-slate-500">
-              <Link href="/shipping" className="hover:text-slate-900 transition">
+            {/* Desktop nav (ALL pills) */}
+            <nav className="hidden sm:flex items-center gap-3">
+              <Link href="/shipping" className={pillNeutral}>
                 Shipping
               </Link>
-              <Link href="/order-help" className="hover:text-slate-900 transition">
+              <Link href="/order-help" className={pillNeutral}>
                 Order help
               </Link>
-              <Link
-                href="/orders"
-                className="px-3 py-1.5 rounded-full bg-slate-900 text-slate-50 border border-slate-900 hover:bg-slate-700 transition"
-              >
+              <Link href="/orders" className={pillAccent}>
                 My orders
               </Link>
             </nav>
@@ -78,7 +89,7 @@ export default function TopNav() {
       </header>
 
       {/* Spacer so fixed header doesn't overlap content */}
-      <div className="h-[86px] sm:h-[92px]" />
+      <div className="h-[116px] sm:h-[140px]" />
 
       {/* DRAWER */}
       <div
@@ -119,38 +130,31 @@ export default function TopNav() {
             <Link
               href="/shipping"
               onClick={() => setOpen(false)}
-              className="block rounded-xl border border-slate-200 p-3 hover:bg-slate-50 transition"
+              className={cardNeutral}
             >
               <p className="text-sm font-medium text-slate-900">Shipping</p>
-              <p className="text-[11px] text-slate-500">
-                Delivery times &amp; costs
-              </p>
+              <p className="text-[11px] text-slate-500">Delivery &amp; production</p>
             </Link>
 
             <Link
               href="/order-help"
               onClick={() => setOpen(false)}
-              className="block rounded-xl border border-slate-200 p-3 hover:bg-slate-50 transition"
+              className={cardNeutral}
             >
               <p className="text-sm font-medium text-slate-900">Order help</p>
-              <p className="text-[11px] text-slate-500">
-                Questions, changes &amp; returns
-              </p>
+              <p className="text-[11px] text-slate-500">Support &amp; changes</p>
             </Link>
 
             <Link
               href="/orders"
               onClick={() => setOpen(false)}
-              className="block rounded-xl border border-slate-900 bg-slate-900 p-3 hover:bg-slate-800 transition"
+              className={cardAccent}
             >
-              <p className="text-sm font-medium text-white">My orders</p>
-              <p className="text-[11px] text-white/80">
-                Track &amp; manage your order
-              </p>
+              <p className="text-sm font-medium text-slate-900">My orders</p>
+              <p className="text-[11px] text-slate-600">Track &amp; manage</p>
             </Link>
           </div>
 
-          {/* Bottom safe-area padding */}
           <div className="h-[max(1rem,env(safe-area-inset-bottom))]" />
         </aside>
       </div>

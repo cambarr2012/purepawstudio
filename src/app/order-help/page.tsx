@@ -1,6 +1,16 @@
 "use client";
 
+import type { Metadata } from "next";
 import Link from "next/link";
+
+// Works with client pages
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: "Order help",
+    description:
+      "Support for PurePawStudio orders — delivery questions, changes, and returns.",
+  };
+}
 
 export default function OrderHelpPage() {
   return (
@@ -76,7 +86,7 @@ export default function OrderHelpPage() {
             </h2>
             <p className="text-[13px] text-slate-700 mb-2">
               For now we&apos;re handling support via email so we can keep
-              things personal and fast.
+              things personal and clear.
             </p>
             <p className="text-[13px] text-slate-700">
               Please email{" "}
@@ -106,8 +116,7 @@ export default function OrderHelpPage() {
               Order status
             </h2>
             <p className="text-[13px] text-slate-700">
-              We&apos;re building a self-serve order tracking page. For now,
-              the fastest way to get an update is to email us with your order
+              The fastest way to get an update is to email us with your order
               details or reply directly to your confirmation email.
             </p>
             <p className="mt-2 text-[12px] text-slate-500">
