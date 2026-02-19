@@ -14,7 +14,7 @@ export async function GET() {
     ok: true,
     route: "/api/orders/generate-print-file",
     methods: ["POST"],
-    version: "v6-print-matte-keyout-premultiply-feather",
+    version: "v7-print-matte-keyout-sanitize-rgb",
   });
 }
 
@@ -46,9 +46,8 @@ function resolveBaseUrl(req: NextRequest) {
 }
 
 /**
- * Detect + remove opaque black matte backgrounds (the “black square” issue).
- * Uses corner sampling to decide if background is an opaque near-black box.
- * If detected: key out near-black pixels to transparency with a soft ramp.
+ * Detect + remove opaque black matte backgrounds.
+ * (Same fix as generate-art.)
  */
 async function removeBlackBoxBackgroundIfNeeded(inputPng: Buffer): Promise<Buffer> {
   const { data, info } = await sharp(inputPng)
@@ -87,15 +86,14 @@ async function removeBlackBoxBackgroundIfNeeded(inputPng: Buffer): Promise<Buffe
     }
   }
 
-  const avgA = sumA / cornerCount; // 0..255
-  const avgRGB = sumRGB / (cornerCount * 3); // 0..255
+  const avgA = sumA / cornerCount;
+  const avgRGB = sumRGB / (cornerCount * 3);
 
   const looksLikeBlackBox = avgA > 245 && avgRGB < 25;
   if (!looksLikeBlackBox) return inputPng;
 
-  // Keying thresholds
-  const hardCut = 18; // <= this => alpha 0
-  const softCut = 70; // ramp to preserve anti-aliased edge
+  const hardCut = 18;
+  const softCut = 70;
 
   const out = Buffer.from(data);
 
@@ -123,10 +121,10 @@ async function removeBlackBoxBackgroundIfNeeded(inputPng: Buffer): Promise<Buffe
 }
 
 /**
- * Premultiply RGB by alpha (removes “hidden RGB” halos).
- * This makes edge pixels behave nicely if we feather alpha.
+ * Important for print: remove “hidden RGB” in fully transparent pixels.
+ * This prevents halos and weird edge artifacts when resizing.
  */
-async function premultiplyRgbByAlpha(inputPng: Buffer): Promise<Buffer> {
+async function sanitizeTransparentRgb(inputPng: Buffer): Promise<Buffer> {
   const { data, info } = await sharp(inputPng)
     .ensureAlpha()
     .raw()
@@ -135,11 +133,12 @@ async function premultiplyRgbByAlpha(inputPng: Buffer): Promise<Buffer> {
   const out = Buffer.from(data);
 
   for (let i = 0; i < out.length; i += 4) {
-    const a = out[i + 3] / 255;
-    // Premultiply
-    out[i] = Math.round(out[i] * a);
-    out[i + 1] = Math.round(out[i + 1] * a);
-    out[i + 2] = Math.round(out[i + 2] * a);
+    const a = out[i + 3];
+    if (a === 0) {
+      out[i] = 0;
+      out[i + 1] = 0;
+      out[i + 2] = 0;
+    }
   }
 
   return sharp(out, { raw: { width: info.width, height: info.height, channels: 4 } })
@@ -147,49 +146,8 @@ async function premultiplyRgbByAlpha(inputPng: Buffer): Promise<Buffer> {
     .toBuffer();
 }
 
-/**
- * Gentle deterministic alpha feather for POD — NO “grow”.
- * Growing alpha is what reveals black matte/hidden RGB at the edges.
- */
-async function featherAlphaEdges(
-  inputPng: Buffer,
-  opts?: { featherPx?: number }
-): Promise<Buffer> {
-  const featherPx = Math.max(0, Math.min(4, opts?.featherPx ?? 1.2));
-
-  const base = sharp(inputPng).ensureAlpha();
-  const meta = await base.metadata();
-  if (!meta.width || !meta.height) return base.png().toBuffer();
-
-  const width = meta.width;
-  const height = meta.height;
-
-  const { data: alphaRaw } = await base
-    .clone()
-    .extractChannel(3)
-    .raw()
-    .toBuffer({ resolveWithObject: true });
-
-  const alphaFeatheredRaw = await sharp(alphaRaw, {
-    raw: { width, height, channels: 1 },
-  })
-    .blur(featherPx)
-    .raw()
-    .toBuffer();
-
-  const rgb = await base.clone().removeAlpha().raw().toBuffer();
-
-  // Reattach feathered alpha as RAW (no format confusion)
-  return sharp(rgb, { raw: { width, height, channels: 3 } })
-    .joinChannel(alphaFeatheredRaw, {
-      raw: { width, height, channels: 1 },
-    })
-    .png()
-    .toBuffer();
-}
-
 export async function POST(req: NextRequest) {
-  console.log("🔥 [generate-print-file] VERSION=v6 (MATTE KEYOUT + PREMULTIPLY + FEATHER)");
+  console.log("🔥 [generate-print-file] VERSION=v7 (MATTE KEYOUT + SANITIZE RGB)");
 
   try {
     const body = (await req.json()) as GenerateOrderPrintFileBody;
@@ -212,7 +170,6 @@ export async function POST(req: NextRequest) {
 
     const styleKey = normaliseStyle(styleId);
 
-    // QR target URL (stored; NOT printed)
     const encodedArtworkUrl = encodeURIComponent(artworkUrl);
     const encodedStyle = encodeURIComponent(styleKey);
     const qrTargetUrl = `${baseUrl}/p?img=${encodedArtworkUrl}&s=${encodedStyle}`;
@@ -229,7 +186,7 @@ export async function POST(req: NextRequest) {
       qrTargetUrl,
     });
 
-    // 1) Fetch the artwork image
+    // 1) Fetch the artwork image (this should already be PNG w/ alpha)
     const artRes = await fetch(artworkUrl);
     if (!artRes.ok) {
       console.error(
@@ -244,19 +201,17 @@ export async function POST(req: NextRequest) {
     }
     const artBuffer = Buffer.from(await artRes.arrayBuffer());
 
-    // ✅ 1b) Remove black matte background if present (fixes the black square print bug)
+    // ✅ 1b) Fix black matte backgrounds (old gens + occasional model outputs)
     const matteCleaned = await removeBlackBoxBackgroundIfNeeded(artBuffer);
 
-    // ✅ 1c) Premultiply RGB by alpha so feathering can’t reveal hidden RGB halos
-    const premultiplied = await premultiplyRgbByAlpha(matteCleaned);
-
-    // ✅ 1d) Gentle feather (NO grow)
-    const polishedArtBuffer = await featherAlphaEdges(premultiplied, { featherPx: 1.2 });
+    // ✅ 1c) Ensure transparent pixels don’t carry junk RGB (prevents halos on resize)
+    const cleanedForPrint = await sanitizeTransparentRgb(matteCleaned);
 
     // 2) Build ART-ONLY print file
     const artRect = getArtRect();
 
-    const resizedArt = await sharp(polishedArtBuffer)
+    const resizedArt = await sharp(cleanedForPrint)
+      .ensureAlpha()
       .resize({
         width: artRect.width,
         height: artRect.height,
@@ -289,7 +244,10 @@ export async function POST(req: NextRequest) {
       });
 
     if (uploadPrintError) {
-      console.error("[generate-print-file] Upload print file error:", uploadPrintError);
+      console.error(
+        "[generate-print-file] Upload print file error:",
+        uploadPrintError
+      );
       return NextResponse.json(
         { error: "Failed to upload print file to storage" },
         { status: 500 }
@@ -309,12 +267,14 @@ export async function POST(req: NextRequest) {
     const qrDataUrl = await QRCode.toDataURL(qrTargetUrl, {
       width: 1200,
       margin: 1,
-      color: { dark: "#000000ff", light: "#ffffffff" },
+      color: {
+        dark: "#000000ff",
+        light: "#ffffffff",
+      },
     });
-
     const qrBuffer = dataUrlToBuffer(qrDataUrl);
-    const qrObjectPath = `qrs/${fileId}.png`;
 
+    const qrObjectPath = `qrs/${fileId}.png`;
     const { error: uploadQrError } = await supabaseAdmin.storage
       .from("artworks")
       .upload(qrObjectPath, qrBuffer, {
@@ -324,18 +284,12 @@ export async function POST(req: NextRequest) {
 
     if (uploadQrError) {
       console.error("[generate-print-file] Upload QR error:", uploadQrError);
-      // Do not fail request — print file is critical.
+      // Don't fail the whole request — print file is critical.
     }
 
     const {
       data: { publicUrl: qrUrl },
     } = supabaseAdmin.storage.from("artworks").getPublicUrl(qrObjectPath);
-
-    console.log("[generate-print-file] Uploaded QR:", {
-      qrObjectPath,
-      qrUrl,
-      qrTargetUrl,
-    });
 
     // 5) Persist URLs to orders row (requires orderId)
     let dbMatchedOrder: boolean | null = null;
@@ -362,16 +316,14 @@ export async function POST(req: NextRequest) {
           .limit(1);
 
         if (verifyError) {
-          console.error("[generate-print-file] Orders verify error:", verifyError);
+          console.error(
+            "[generate-print-file] Orders verify error:",
+            verifyError
+          );
           dbMatchedOrder = null;
         } else {
           dbMatchedOrder = (verifyData?.length ?? 0) > 0;
         }
-
-        console.log("[generate-print-file] Orders row updated:", {
-          orderId,
-          dbMatchedOrder,
-        });
       }
     } else {
       console.warn(
@@ -382,7 +334,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         ok: true,
-        version: "v6-print-matte-keyout-premultiply-feather",
+        version: "v7-print-matte-keyout-sanitize-rgb",
         orderId: orderId ?? null,
         artworkId,
         artworkUrl,
