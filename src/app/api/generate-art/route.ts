@@ -14,7 +14,6 @@ type StyleId = "gangster" | "cartoon" | "girlboss";
 function buildStylePrompt(styleId: StyleId): string {
   switch (styleId) {
     case "gangster":
-      // Fix: prevent red/pink rim-light / neon outline glow that causes reddish tint
       return "a bold, exaggerated high-end cartoon pet portrait with confident swagger, deep rich colours, strong comic-book shading, smooth rounded shapes, clean crisp edges, COOL/NEUTRAL lighting, no red or pink rim-light, no neon outlines, neutral dark outlines only";
     case "cartoon":
       return "a vibrant, high-end family-friendly cartoon illustration with smooth rounded shapes, expressive eyes, soft but saturated colours, clean outlines, glossy highlights, friendly cute proportions";
@@ -26,17 +25,94 @@ function buildStylePrompt(styleId: StyleId): string {
 }
 
 /**
+ * If the model returns an opaque black box background (common failure mode),
+ * detect it via corners + alpha, and key out near-black pixels to transparency.
+ *
+ * This runs BEFORE normalisation, so trim() can then remove the box properly.
+ */
+async function removeBlackBoxBackgroundIfNeeded(inputPng: Buffer): Promise<Buffer> {
+  const { data, info } = await sharp(inputPng)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  const w = info.width;
+  const h = info.height;
+  const stride = 4;
+
+  // sample 8x8 pixels from each corner
+  const sampleSize = 8;
+  const corners: Array<[number, number]> = [
+    [0, 0],
+    [w - sampleSize, 0],
+    [0, h - sampleSize],
+    [w - sampleSize, h - sampleSize],
+  ];
+
+  let cornerCount = 0;
+  let sumA = 0;
+  let sumRGB = 0;
+
+  for (const [sx, sy] of corners) {
+    for (let y = sy; y < sy + sampleSize; y++) {
+      for (let x = sx; x < sx + sampleSize; x++) {
+        const i = (y * w + x) * stride;
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+        const a = data[i + 3];
+        sumA += a;
+        sumRGB += r + g + b;
+        cornerCount++;
+      }
+    }
+  }
+
+  const avgA = sumA / cornerCount;
+  const avgRGB = sumRGB / (cornerCount * 3);
+
+  const looksLikeBlackBox = avgA > 245 && avgRGB < 25;
+  if (!looksLikeBlackBox) return inputPng;
+
+  const hardCut = 18;
+  const softCut = 70;
+
+  const out = Buffer.from(data);
+
+  for (let i = 0; i < out.length; i += 4) {
+    const r = out[i];
+    const g = out[i + 1];
+    const b = out[i + 2];
+    const a = out[i + 3];
+
+    if (a < 10) continue;
+
+    const maxc = Math.max(r, g, b);
+
+    if (maxc <= hardCut) {
+      out[i + 3] = 0;
+    } else if (maxc < softCut) {
+      const t = (maxc - hardCut) / (softCut - hardCut);
+      out[i + 3] = Math.round(t * 255);
+    }
+  }
+
+  return sharp(out, { raw: { width: w, height: h, channels: 4 } })
+    .png()
+    .toBuffer();
+}
+
+/**
  * Normalise output so preview/print behave consistently:
  * - Ensure alpha
  * - Trim extra transparent whitespace (or tight crops)
- * - Resize into a consistent square with margin (prevents 'huge/cut off' previews)
+ * - Resize into a consistent square with margin
  */
 async function normaliseArtworkPng(
   inputPng: Buffer,
   opts?: { canvasSize?: number; innerScale?: number }
 ): Promise<Buffer> {
   const canvasSize = opts?.canvasSize ?? 1024;
-  // innerScale = how much of the canvas the subject can occupy (0.86 = 86%)
   const innerScale = Math.min(0.95, Math.max(0.75, opts?.innerScale ?? 0.86));
   const innerSize = Math.round(canvasSize * innerScale);
 
@@ -56,7 +132,7 @@ async function normaliseArtworkPng(
     .png()
     .toBuffer();
 
-  return await sharp({
+  return sharp({
     create: {
       width: canvasSize,
       height: canvasSize,
@@ -76,7 +152,7 @@ async function normaliseArtworkPng(
 }
 
 // -------------------------
-// FULL PROMPT BUILDER
+// FULL PROMPT BUILDER (BUST PORTRAIT + ROUNDED BOTTOM RULE)
 // -------------------------
 function buildPrompt(params: {
   styleId: StyleId;
@@ -93,12 +169,29 @@ function buildPrompt(params: {
     "Use the uploaded image as an exact reference for the pet's face, head shape, ears, body proportions and fur markings.",
     "Preserve the pet's base fur colour exactly as in the reference photo. Match coat colours, patches, patterns and markings.",
     "Preserve the pet's natural eye colour and nose colour.",
+
+    // Clean-up rules
     "Remove collars, harnesses, leashes, toys, furniture, background clutter, or human hands.",
     "Remove any objects from the mouth including leads, toys or sticks.",
-    "Focus on face + upper body, centred. One pet only.",
+
+    // ✅ Composition control (consistent bust portrait)
+    "Composition: a centred bust portrait crop showing the pet's head, neck, and upper chest/shoulders (studio portrait framing).",
+    "Do NOT include full body, legs, paws, belly, or a sitting/lying full-body pose. No full torso.",
+    "Lower edge rule: the bottom silhouette must end in a natural rounded/tapered shape (fur tuft/shoulder curve), never a straight horizontal cutoff.",
+    "Include a small amount of chest/shoulder fur so the cut-out shape is smoothly rounded at the bottom.",
+    "Camera angle: eye-level, straight-on or slight 3/4 turn. Keep it natural and symmetrical.",
+    "Keep a small margin around the ears and head (do not crop ears).",
+    "Keep subject scale consistent: the head should occupy roughly 55–70% of the image height (not tiny, not full-body).",
+    "One pet only.",
+
+    // Quality + safety
     "Keep the pet anatomically correct: two eyes, complete ears, complete nose, no missing facial features, no distortions.",
     "Do not duplicate the pet. No extra heads, extra eyes, or extra bodies.",
+
+    // Output requirements
     "Output must be a clean cut-out on a fully transparent background (PNG alpha). No background, no gradient, no shadow.",
+    "Silhouette edge must be smooth and naturally curved (no straight cut edges or flat clipped lines).",
+    "Avoid jagged or pixelated cutout edges; produce a clean anti-aliased alpha edge.",
     "Do NOT add any outer border, sticker outline, white trim, glow, stroke, or cutline around the character.",
     "No coloured glow or rim-light around the character. No neon outlines. Keep outlines neutral (black/dark grey) only.",
     "Do NOT draw mugs, bottles, hands or other products.",
@@ -110,6 +203,8 @@ function buildPrompt(params: {
   if (styleId === "gangster") {
     accessoryRules.push(
       "Add a single thick stylised gold chain around the pet's neck.",
+      "Ensure the gold chain is fully visible around the neck within the crop (not cut off).",
+      "Chain should sit on the upper chest under the chin; keep it thick and stylised but realistic.",
       "Do NOT recolour the fur to resemble gold or orange — only the chain should be gold.",
       "No accessories besides the gold chain.",
       "No red/pink rim lighting or coloured edge highlights. Avoid neon edge glows. Use neutral or cool-toned shading only."
@@ -117,6 +212,13 @@ function buildPrompt(params: {
   } else {
     accessoryRules.push(
       "Do not add any necklaces, jewellery, sunglasses, hats, clothes or accessories."
+    );
+  }
+
+  // Extra safety specifically for girlboss (this is the one producing flat bottoms)
+  if (styleId === "girlboss") {
+    accessoryRules.push(
+      "Important: do not crop the portrait with a flat bottom edge. Ensure the lower silhouette is rounded and organic with visible shoulder/chest fur."
     );
   }
 
@@ -233,9 +335,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Normalise output padding/margins to stop style variance in preview
+    // Decode model output
     const outputBuffer = Buffer.from(outputB64, "base64");
-    const normalisedBuffer = await normaliseArtworkPng(outputBuffer, {
+
+    // ✅ Fix opaque black background if it appears
+    const cleanedBuffer = await removeBlackBoxBackgroundIfNeeded(outputBuffer);
+
+    // Normalise padding/margins
+    const normalisedBuffer = await normaliseArtworkPng(cleanedBuffer, {
       canvasSize: 1024,
       innerScale: 0.86,
     });
