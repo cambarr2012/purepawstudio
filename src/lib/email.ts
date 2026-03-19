@@ -1,8 +1,6 @@
 // src/lib/email.ts
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 type EmailTemplateArgs = {
   firstName?: string | null;
   orderId: string;
@@ -14,6 +12,16 @@ type EmailTemplateArgs = {
 type SendOrderConfirmationEmailArgs = EmailTemplateArgs & {
   to: string;
 };
+
+function getResendClient() {
+  const apiKey = process.env.RESEND_API_KEY;
+
+  if (!apiKey) {
+    throw new Error("RESEND_API_KEY is not configured");
+  }
+
+  return new Resend(apiKey);
+}
 
 function formatProductName(productType?: string | null) {
   if (productType === "gym_bottle") return "PurePaw Gym Bottle";
@@ -53,11 +61,9 @@ export function buildOrderConfirmationEmail({
         <p style="margin:0 0 8px; font-size:18px; line-height:1.4; font-weight:700; color:#0f172a;">
           A little bonus
         </p>
-
         <p style="margin:0 0 16px; font-size:16px; line-height:1.8; color:#475569;">
           Your PurePaw animation is ready to view.
         </p>
-
         <a
           href="${animationUrl}"
           style="display:inline-block; padding:12px 18px; background:#0f172a; color:#ffffff; text-decoration:none; border-radius:999px; font-size:14px; font-weight:700;"
@@ -69,11 +75,7 @@ export function buildOrderConfirmationEmail({
     : "";
 
   const textBonusSection = animationUrl
-    ? [
-        "",
-        "A little bonus:",
-        `View your animation: ${animationUrl}`,
-      ].join("\n")
+    ? ["", "A little bonus:", `View your animation: ${animationUrl}`].join("\n")
     : "";
 
   const html = `
@@ -212,11 +214,7 @@ export function buildOrderConfirmationEmail({
     "support@purepawstudio.com",
   ].join("\n");
 
-  return {
-    subject,
-    html,
-    text,
-  };
+  return { subject, html, text };
 }
 
 export async function sendOrderConfirmationEmail({
@@ -227,6 +225,8 @@ export async function sendOrderConfirmationEmail({
   styleId,
   animationUrl,
 }: SendOrderConfirmationEmailArgs) {
+  const resend = getResendClient();
+
   const { subject, html, text } = buildOrderConfirmationEmail({
     firstName,
     orderId,
