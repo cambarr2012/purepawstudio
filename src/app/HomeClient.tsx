@@ -1,9 +1,10 @@
-// src/app/page.tsx
+// src/app/HomeClient.tsx
 "use client";
 
 import { useState, ChangeEvent, useRef } from "react";
 import { useRouter } from "next/navigation";
 import MugPreview from "./MugPreview";
+import GymBottlePreview from "./GymBottlePreview";
 import PhotoTipsAccordion from "./PhotoTipsAccordion";
 import TopNav from "./TopNav";
 import { GenerationWheel } from "@/components/GenerationWheel";
@@ -189,7 +190,8 @@ async function standardizeArtForFlask(imageBase64: string): Promise<string> {
 
       ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
-      const MAX_RATIO = 0.8;
+      // ✅ Was 0.8 — that double-normalised your already-normalised art
+      const MAX_RATIO = 0.92;
       const maxDrawSize = CANVAS_SIZE * MAX_RATIO;
 
       const scale = Math.min(
@@ -214,6 +216,7 @@ async function standardizeArtForFlask(imageBase64: string): Promise<string> {
   });
 }
 
+
 type GenStep =
   | "remove_bg"
   | "generate_art"
@@ -221,13 +224,15 @@ type GenStep =
   | "finalise"
   | "prepare_preview";
 
-export default function HomePage() {
+export default function HomeClient() {
   const router = useRouter();
   const step1Ref = useRef<HTMLDivElement | null>(null);
 
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
 
   const [styleId, setStyleId] = useState<StyleId>("gangster");
+  const [previewProduct, setPreviewProduct] = useState<"flask" | "gym">("flask");
+
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [processedUrl, setProcessedUrl] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -467,7 +472,9 @@ export default function HomePage() {
       const json = await res.json();
 
       if (json.error) {
-        setArtError(json.error || "Something went wrong while creating the design.");
+        setArtError(
+          json.error || "Something went wrong while creating the design."
+        );
         setGenerateProgress(0);
         return;
       }
@@ -522,7 +529,8 @@ export default function HomePage() {
     switch (status) {
       case "good":
         return {
-          container: "bg-emerald-50 border-emerald-200 text-emerald-800 shadow-sm",
+          container:
+            "bg-emerald-50 border-emerald-200 text-emerald-800 shadow-sm",
           label: "text-emerald-800",
         };
       case "warn":
@@ -561,14 +569,18 @@ export default function HomePage() {
       hint = "You’re good to go. Next, choose a style and create your design.";
     } else if (status === "warn") {
       headline = "This photo will work, but the result may be softer.";
-      hint = "For best results: brighter light, closer face, and a simpler background.";
+      hint =
+        "For best results: brighter light, closer face, and a simpler background.";
     } else {
       headline = "This photo is unlikely to produce a great result.";
-      hint = "Try a new photo: front-facing, sharp, well-lit, with minimal background clutter.";
+      hint =
+        "Try a new photo: front-facing, sharp, well-lit, with minimal background clutter.";
     }
 
     return (
-      <div className={`mt-3 rounded-lg border px-3 py-3 text-xs space-y-2 ${styles.container}`}>
+      <div
+        className={`mt-3 rounded-lg border px-3 py-3 text-xs space-y-2 ${styles.container}`}
+      >
         <div>
           <p className={`font-medium text-[13px] ${styles.label}`}>
             Photo quality: {status.toUpperCase()} (score {score.toFixed(1)}/10)
@@ -596,12 +608,16 @@ export default function HomePage() {
     );
   }
 
-  const canGenerate = !!selectedFile && !!qualityResult && qualityResult.status !== "bad";
+  const canGenerate =
+    !!selectedFile && !!qualityResult && qualityResult.status !== "bad";
 
   const sourcePreview = processedUrl ?? previewUrl;
   const flaskPreview = generatedArtUrl;
 
-  const remainingGenerations = Math.max(0, MAX_GENERATIONS_PER_PHOTO - generationCount);
+  const remainingGenerations = Math.max(
+    0,
+    MAX_GENERATIONS_PER_PHOTO - generationCount
+  );
   const hasArt = !!generatedArtUrl;
 
   const generateButtonLabel = isGenerating
@@ -612,10 +628,17 @@ export default function HomePage() {
       : "Preview limit reached"
     : "Create my design";
 
-  const disableGenerateButton = !canGenerate || isGenerating || generationCount >= MAX_GENERATIONS_PER_PHOTO;
+  const disableGenerateButton =
+    !canGenerate ||
+    isGenerating ||
+    generationCount >= MAX_GENERATIONS_PER_PHOTO;
 
   const canGoToCheckout =
-    !!artworkId && !!generatedArtUrl && !isSavingArtwork && !saveArtworkError && !artError;
+    !!artworkId &&
+    !!generatedArtUrl &&
+    !isSavingArtwork &&
+    !saveArtworkError &&
+    !artError;
 
   const step1Active = currentStep === 1;
   const step2Active = currentStep === 2;
@@ -655,13 +678,16 @@ export default function HomePage() {
             <div className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] text-slate-700 shadow-sm">
               <span className="font-medium text-slate-900">From £19.99</span>
               <span className="mx-1.5 text-slate-300">·</span>
-              <span className="text-slate-500">Stainless steel · UK fulfilment</span>
+              <span className="text-slate-500">
+                Stainless steel · UK fulfilment
+              </span>
             </div>
           </div>
 
           {/* Copy */}
           <p className="hidden sm:block text-slate-600 max-w-2xl mx-auto text-sm md:text-base">
-            Upload a photo, choose your pet’s vibe and preview your flask before you order.
+            Upload a photo, choose your pet’s vibe and preview your flask before you
+            order.
           </p>
           <p className="sm:hidden text-slate-600 max-w-md mx-auto text-sm">
             Upload a photo, choose a vibe, preview your flask.
@@ -704,7 +730,9 @@ export default function HomePage() {
               >
                 1
               </span>
-              <span className={stepLabelClass(step1Active || step2Active)}>Upload photo</span>
+              <span className={stepLabelClass(step1Active || step2Active)}>
+                Upload photo
+              </span>
             </div>
 
             <div className="hidden sm:block h-px w-6 bg-slate-300" />
@@ -739,7 +767,9 @@ export default function HomePage() {
           </div>
 
           <p className="sm:hidden text-[11px] text-slate-500 text-center">
-            Step <span className="font-semibold text-slate-800">{overallStep}</span> of 3
+            Step{" "}
+            <span className="font-semibold text-slate-800">{overallStep}</span>{" "}
+            of 3
           </p>
 
           <div className="h-1.5 w-full max-w-md mx-auto rounded-full bg-slate-200 border border-slate-200 overflow-hidden">
@@ -767,7 +797,9 @@ export default function HomePage() {
               </p>
 
               <div className="space-y-3">
-                <h3 className="text-sm font-medium text-slate-900">Pick your favourite photo</h3>
+                <h3 className="text-sm font-medium text-slate-900">
+                  Pick your favourite photo
+                </h3>
 
                 <label className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center cursor-pointer hover:border-amber-400 hover:bg-amber-50/60 transition">
                   <span className="text-xs uppercase tracking-[0.16em] text-slate-500">
@@ -868,7 +900,9 @@ export default function HomePage() {
                   )}
 
                   <div className="space-y-3 mt-4">
-                    <h3 className="text-sm font-medium text-slate-900">Choose a vibe</h3>
+                    <h3 className="text-sm font-medium text-slate-900">
+                      Choose a vibe
+                    </h3>
 
                     <div className="grid grid-cols-3 gap-3">
                       <button
@@ -881,7 +915,9 @@ export default function HomePage() {
                         }`}
                       >
                         <span className="block">Gangster</span>
-                        <span className="block text-[10px] text-slate-500">Gold chain, cool vibe</span>
+                        <span className="block text-[10px] text-slate-500">
+                          Gold chain, cool vibe
+                        </span>
                       </button>
 
                       <button
@@ -894,7 +930,9 @@ export default function HomePage() {
                         }`}
                       >
                         <span className="block">Disney</span>
-                        <span className="block text-[10px] text-slate-500">Movie-style magic</span>
+                        <span className="block text-[10px] text-slate-500">
+                          Movie-style magic
+                        </span>
                       </button>
 
                       <button
@@ -907,12 +945,16 @@ export default function HomePage() {
                         }`}
                       >
                         <span className="block">Girlboss</span>
-                        <span className="block text-[10px] text-slate-500">Lashes &amp; glam</span>
+                        <span className="block text-[10px] text-slate-500">
+                          Lashes &amp; glam
+                        </span>
                       </button>
                     </div>
 
                     <div className="space-y-2 pt-2">
-                      <h3 className="text-sm font-medium text-slate-900">Create your design</h3>
+                      <h3 className="text-sm font-medium text-slate-900">
+                        Create your design
+                      </h3>
 
                       <button
                         type="button"
@@ -933,19 +975,29 @@ export default function HomePage() {
 
                       <p className="text-[11px] text-slate-500">
                         Designs created:{" "}
-                        <span className="font-semibold">{generationCount}/{MAX_GENERATIONS_PER_PHOTO}</span>.
+                        <span className="font-semibold">
+                          {generationCount}/{MAX_GENERATIONS_PER_PHOTO}
+                        </span>
+                        .
                       </p>
 
                       {isGenerating && (
                         <div className="mt-3 rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-                          <GenerationWheel step={genStep} styleLabel={styleId} runId={genRunId} />
+                          <GenerationWheel
+                            step={genStep}
+                            styleLabel={styleId}
+                            runId={genRunId}
+                          />
 
                           <div className="px-4 pb-4">
                             <div className="h-1.5 w-full rounded-full bg-slate-200 overflow-hidden">
                               <div
                                 className="h-full bg-gradient-to-r from-amber-300 via-amber-400 to-amber-200 transition-all duration-300"
                                 style={{
-                                  width: `${Math.max(10, Math.min(generateProgress, 100))}%`,
+                                  width: `${Math.max(
+                                    10,
+                                    Math.min(generateProgress, 100)
+                                  )}%`,
                                 }}
                               />
                             </div>
@@ -960,11 +1012,13 @@ export default function HomePage() {
                         We keep your pet’s unique face and markings and prepare a print-ready design for your flask.
                       </p>
 
-                      {artError && <p className="text-[11px] text-rose-600">{artError}</p>}
+                      {artError && (
+                        <p className="text-[11px] text-rose-600">{artError}</p>
+                      )}
 
                       {generatedArtUrl && !artError && (
                         <p className="text-[11px] text-emerald-700">
-                          Design created ✓ — your flask preview on the right is updated.
+                          Design created ✓ — your preview on the right is updated.
                         </p>
                       )}
 
@@ -988,32 +1042,75 @@ export default function HomePage() {
 
           {/* Right */}
           <section className="bg-white border border-slate-200 rounded-2xl p-5 md:p-6 flex flex-col shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
-            <h2 className="text-sm font-medium mb-4 text-slate-900">
-              Live PurePaw Flask preview
-            </h2>
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <h2 className="text-sm font-medium text-slate-900">
+                Live PurePaw preview
+              </h2>
 
-            <MugPreview
-              imageUrl={flaskPreview}
-              hasGeneratedArt={!!generatedArtUrl}
-              styleId={effectiveStyleForPreview}
-            />
+              {/* Toggle */}
+              <div className="inline-flex rounded-full border border-slate-200 bg-slate-50 p-1">
+                <button
+                  type="button"
+                  onClick={() => setPreviewProduct("flask")}
+                  className={`px-3 py-1 rounded-full text-[11px] font-medium transition ${
+                    previewProduct === "flask"
+                      ? "bg-white text-slate-900 shadow-sm border border-slate-200"
+                      : "text-slate-500 hover:text-slate-800"
+                  }`}
+                >
+                  Flask
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewProduct("gym")}
+                  className={`px-3 py-1 rounded-full text-[11px] font-medium transition ${
+                    previewProduct === "gym"
+                      ? "bg-white text-slate-900 shadow-sm border border-slate-200"
+                      : "text-slate-500 hover:text-slate-800"
+                  }`}
+                >
+                  Gym bottle
+                </button>
+              </div>
+            </div>
+
+            {previewProduct === "flask" ? (
+              <MugPreview
+                imageUrl={flaskPreview}
+                hasGeneratedArt={!!generatedArtUrl}
+                styleId={effectiveStyleForPreview}
+              />
+            ) : (
+              <GymBottlePreview
+                imageUrl={flaskPreview}
+                hasGeneratedArt={!!generatedArtUrl}
+                styleId={effectiveStyleForPreview}
+              />
+            )}
 
             <p className="mt-4 text-[11px] text-slate-500">
               Selected vibe:{" "}
               <span className="text-slate-900 font-medium capitalize">
-                {effectiveStyleForPreview === "disney" ? "Disney" : effectiveStyleForPreview}
+                {effectiveStyleForPreview === "disney"
+                  ? "Disney"
+                  : effectiveStyleForPreview}
               </span>
             </p>
 
             {generatedArtUrl ? (
-              <p className="mt-1 text-[11px] text-amber-700">
-                This is the design that will be printed on your flask.
-              </p>
-            ) : (
-              <p className="mt-1 text-[11px] text-slate-500">
-                Create your design to see the final flask preview here.
-              </p>
-            )}
+                <>
+                <p className="mt-1 text-[11px] text-amber-700">
+                    This is the design that will be printed on your flask.
+                    </p>
+                    <p className="mt-1 text-[10px] text-slate-500">
+                        Preview is for guidance — final sizing and placement are refined for the best print result.
+                        </p>
+                        </>
+                        ) : (
+                        <p className="mt-1 text-[11px] text-slate-500">
+                            Create your design to see the final flask preview here.
+                            </p>
+                        )}
 
             {/* Design selector */}
             {designs.length > 1 && (
@@ -1049,8 +1146,14 @@ export default function HomePage() {
                           className="w-full h-full object-contain"
                         />
                         <div className="absolute bottom-0 inset-x-0 px-1 py-[2px] bg-black/40 flex items-center justify-between">
-                          <span className="text-[9px] text-slate-50">#{index + 1}</span>
-                          {isActive && <span className="text-[9px] text-amber-200">Selected</span>}
+                          <span className="text-[9px] text-slate-50">
+                            #{index + 1}
+                          </span>
+                          {isActive && (
+                            <span className="text-[9px] text-amber-200">
+                              Selected
+                            </span>
+                          )}
                         </div>
                       </button>
                     );
@@ -1081,7 +1184,8 @@ export default function HomePage() {
                 )}
 
                 <p className="text-[11px] text-slate-500">
-                  We use your photo as the reference, keep the face and markings, and apply the style you choose.
+                  We use your photo as the reference, keep the face and markings,
+                  and apply the style you choose.
                 </p>
               </div>
             </div>
@@ -1165,7 +1269,9 @@ export default function HomePage() {
               </button>
 
               <p className="mt-3 text-[10px] text-slate-500 text-center">
-                Powered by <span className="font-semibold text-slate-800">Stripe</span> · Encrypted checkout
+                Powered by{" "}
+                <span className="font-semibold text-slate-800">Stripe</span> ·
+                Encrypted checkout
               </p>
             </div>
           </section>

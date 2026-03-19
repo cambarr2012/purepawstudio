@@ -2,8 +2,10 @@
 
 export const CANVAS_SIZE = 3000; // final 3000x3000px print file
 
-// Print zone in the center of the canvas.
-// Keep these numbers if they match your physical print-safe area.
+// Locked print placement:
+// This centered 60% x 40% zone matches the current artwork output that
+// visually lands correctly on the bottle mockup / print area.
+// Avoid changing unless supplier proofs show a real misalignment.
 const PRINT_AREA_WIDTH_PERCENT = 60;
 const PRINT_AREA_HEIGHT_PERCENT = 40;
 

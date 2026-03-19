@@ -5,13 +5,23 @@ export const dynamic = "force-dynamic";
 
 const CUTOUT_ENDPOINT =
   "https://www.cutout.pro/api/v1/matting2?mattingType=6&crop=true&preview=true";
-// preview=true charges 0.25 credit / image and caps output at 500x500.
-// You can remove &preview=true later if you want full-credit, full-res cuts.
 
 function getBase64FromDataUrl(imageBase64: string): string {
   const commaIndex = imageBase64.indexOf(",");
   if (commaIndex === -1) return imageBase64;
   return imageBase64.slice(commaIndex + 1);
+}
+
+function getMimeFromDataUrl(imageBase64: string): string {
+  const m = /^data:([^;]+);base64,/i.exec(imageBase64);
+  return m?.[1] || "image/png";
+}
+
+function filenameFromMime(mime: string): string {
+  if (mime.includes("png")) return "upload.png";
+  if (mime.includes("webp")) return "upload.webp";
+  if (mime.includes("jpeg") || mime.includes("jpg")) return "upload.jpg";
+  return "upload.png";
 }
 
 export async function POST(req: NextRequest) {
@@ -25,7 +35,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const body = await req.json().catch(() => null) as
+    const body = (await req.json().catch(() => null)) as
       | { imageBase64?: string }
       | null;
 
@@ -37,14 +47,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Strip the data URL header and turn into a binary buffer
     const pureBase64 = getBase64FromDataUrl(imageBase64);
+    const mime = getMimeFromDataUrl(imageBase64);
+    const filename = filenameFromMime(mime);
     const buffer = Buffer.from(pureBase64, "base64");
 
-    // Build multipart/form-data payload for Cutout.Pro
     const formData = new FormData();
-    // "file" is the expected field name in their docs
-    formData.append("file", new Blob([buffer]), "upload.png");
+    formData.append(
+      "file",
+      new Blob([buffer], { type: mime }),
+      filename
+    );
 
     const cutoutRes = await fetch(CUTOUT_ENDPOINT, {
       method: "POST",
@@ -83,7 +96,6 @@ export async function POST(req: NextRequest) {
     const resultBase64 = json.data.imageBase64;
     const dataUrl = `data:image/png;base64,${resultBase64}`;
 
-    // Match the existing contract: { imageBase64 } on success
     return NextResponse.json({ imageBase64: dataUrl });
   } catch (err) {
     console.error("Unexpected error in /api/remove-background:", err);
@@ -94,7 +106,6 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// Simple GET so you can ping the route
 export async function GET() {
   return NextResponse.json({
     ok: true,
