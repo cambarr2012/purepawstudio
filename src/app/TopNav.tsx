@@ -25,19 +25,20 @@ export default function TopNav() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [open]);
 
-  // Desktop pills
-  const pillBase = "px-4 py-2 rounded-full border text-[11px] transition shadow-sm";
-  const pillNeutral =
-    `${pillBase} border-amber-200/70 bg-white/80 text-slate-700 hover:bg-white hover:border-amber-300`;
-  const pillAccent =
-    `${pillBase} border-amber-400 bg-white/80 text-slate-900 hover:bg-white hover:border-amber-500`;
+ const pillBase = "px-4 py-2 rounded-full border text-[11px] transition shadow-sm";
+const pillBorder = "border-amber-200/70";
+const pillNeutral =
+  `${pillBase} ${pillBorder} bg-white/80 text-slate-700 hover:bg-white hover:border-amber-300`;
+const pillAccent =
+  `${pillBase} ${pillBorder} bg-white/80 text-slate-900 hover:bg-white hover:border-amber-300`;
 
   // Drawer cards
   const cardBase = "block rounded-2xl border p-3 transition";
+  const cardBorder = "border-amber-200/60";
   const cardNeutral =
-    `${cardBase} border-amber-200/60 bg-white hover:bg-amber-50/40`;
+    `${cardBase} ${cardBorder} bg-white hover:bg-amber-50/40`;
   const cardAccent =
-    `${cardBase} border-amber-400 bg-white hover:bg-amber-50/60`;
+    `${cardBase} ${cardBorder} bg-white hover:bg-amber-50/60`;
 
   return (
     <>
