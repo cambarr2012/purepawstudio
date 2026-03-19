@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { sendOrderConfirmationEmail } from "@/lib/email";
 
 export const runtime = "nodejs";
 
@@ -15,7 +16,6 @@ export async function POST(req: Request) {
     let event: Stripe.Event;
 
     if (process.env.NODE_ENV === "development") {
-      // 🔓 DEV ONLY: skip signature verification
       try {
         event = JSON.parse(rawBody) as Stripe.Event;
         console.log("[webhook][dev] Parsed event without signature check:", {
@@ -27,7 +27,6 @@ export async function POST(req: Request) {
         return new NextResponse("Bad event payload", { status: 400 });
       }
     } else {
-      // 🔒 PROD: real Stripe signature verification
       if (!sig || !webhookSecret || !stripeSecretKey) {
         console.error("[webhook] Missing sig/secret/stripe key", {
           hasSig: !!sig,
@@ -63,6 +62,8 @@ export async function POST(req: Request) {
         artwork_url?: string;
         styleId?: string;
         style_id?: string;
+        productType?: string;
+        product_type?: string;
         [key: string]: string | undefined;
       };
 
@@ -78,35 +79,62 @@ export async function POST(req: Request) {
       const styleIdMeta =
         metadata.styleId || metadata.style_id || undefined;
 
+      const productType =
+        metadata.productType || metadata.product_type || "flask";
+
       console.log("[webhook] checkout.session.completed metadata:", metadata);
-      console.log("[webhook] Resolved orderId/artworkId/styleId:", {
+      console.log("[webhook] Resolved orderId/artworkId/styleId/productType:", {
         orderId,
         artworkId,
-        styleIdMeta,
+        styleId: styleIdMeta,
+        productType,
       });
 
-      // 1) Update order row with Stripe session + paid status (if we know the order)
+      const customerEmail =
+        session.customer_details?.email || session.customer_email || null;
+
+      const firstName =
+        session.customer_details?.name?.trim()?.split(/\s+/)[0] || null;
+
+      let shouldSendConfirmationEmail = false;
+
       if (orderId) {
         try {
-          const { error: updateError } = await supabaseAdmin
+          const { data: existingOrder, error: fetchError } = await supabaseAdmin
             .from("orders")
-            .update({
-              stripe_session_id: session.id,
-              status: "paid",
-            })
-            .eq("order_id", orderId);
+            .select("order_id, status")
+            .eq("order_id", orderId)
+            .maybeSingle();
 
-          if (updateError) {
-            console.error(
-              "[webhook] Failed to update order with Stripe session:",
-              updateError
-            );
+          if (fetchError) {
+            console.error("[webhook] Failed to fetch existing order:", fetchError);
+          } else if (!existingOrder) {
+            console.warn("[webhook] No order found for orderId:", orderId);
+          } else {
+            shouldSendConfirmationEmail = existingOrder.status !== "paid";
+
+            const { error: updateError } = await supabaseAdmin
+              .from("orders")
+              .update({
+                stripe_session_id: session.id,
+                status: "paid",
+              })
+              .eq("order_id", orderId);
+
+            if (updateError) {
+              console.error(
+                "[webhook] Failed to update order with Stripe session:",
+                updateError
+              );
+              shouldSendConfirmationEmail = false;
+            }
           }
         } catch (err) {
           console.error(
             "[webhook] Error while updating order with Stripe session:",
             err
           );
+          shouldSendConfirmationEmail = false;
         }
       } else {
         console.warn(
@@ -114,7 +142,8 @@ export async function POST(req: Request) {
         );
       }
 
-      // 2) Kick off print-file generation if we have everything we need
+      let animationUrl: string | null = null;
+
       if (!orderId) {
         console.warn(
           "[webhook] No orderId resolved – cannot generate print file."
@@ -168,23 +197,60 @@ export async function POST(req: Request) {
             const data = (await res.json()) as {
               printFileUrl?: string;
               targetUrl?: string;
+              qrTargetUrl?: string;
               [key: string]: any;
             };
+
+            animationUrl = data.qrTargetUrl || data.targetUrl || null;
 
             console.log(
               "[webhook] generate-print-file success. Response summary:",
               {
                 printFileUrl: data.printFileUrl,
-                targetUrl: data.targetUrl,
+                animationUrl,
               }
             );
-            // NOTE: generate-print-file already updates `print_file_url` + status in Supabase.
           }
         } catch (err) {
           console.error(
             "[webhook] Error while calling generate-print-file:",
             err
           );
+        }
+      }
+
+      if (!orderId) {
+        console.warn(
+          "[webhook] No orderId resolved – cannot send confirmation email."
+        );
+      } else if (!customerEmail) {
+        console.warn(
+          "[webhook] No customer email on session – cannot send confirmation email."
+        );
+      } else if (!shouldSendConfirmationEmail) {
+        console.log(
+          "[webhook] Confirmation email skipped (already paid, order missing, or update failed)."
+        );
+      } else {
+        try {
+          const emailResult = await sendOrderConfirmationEmail({
+            to: customerEmail,
+            firstName,
+            orderId,
+            productType,
+            styleId: styleIdMeta,
+            animationUrl,
+          });
+
+          console.log("[webhook] Confirmation email sent:", {
+            orderId,
+            to: customerEmail,
+            animationUrl,
+            emailId: emailResult.data?.id,
+            error: emailResult.error,
+          });
+        } catch (err) {
+          console.error("[webhook] Failed to send confirmation email:", err);
         }
       }
     } else {
@@ -194,12 +260,10 @@ export async function POST(req: Request) {
     return new NextResponse("OK", { status: 200 });
   } catch (err) {
     console.error("[webhook] Unhandled top-level error:", err);
-    // In dev, still return 200 so Stripe doesn't spam retries
     return new NextResponse("OK", { status: 200 });
   }
 }
 
-// Simple health check for browser / sanity
 export async function GET() {
   return NextResponse.json({
     ok: true,
