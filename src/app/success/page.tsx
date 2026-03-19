@@ -1,118 +1,152 @@
-"use client";
-
-import { useSearchParams } from "next/navigation";
+// src/app/success/page.tsx
 import Link from "next/link";
-import { Suspense, useState } from "react";
+import Image from "next/image";
 
-function SuccessInner() {
-  const searchParams = useSearchParams();
-  const sessionId =
-    searchParams.get("session_id") ||
-    searchParams.get("sessionId") ||
-    null;
-
-  const [copied, setCopied] = useState(false);
-
-  const truncated =
-    sessionId && sessionId.length > 24
-      ? sessionId.slice(0, 24) + "…"
-      : sessionId || "";
-
-  const copyToClipboard = () => {
-    if (!sessionId) return;
-    navigator.clipboard.writeText(sessionId);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+type SuccessPageProps = {
+  searchParams?: {
+    session_id?: string;
   };
+};
+
+export default function SuccessPage({ searchParams }: SuccessPageProps) {
+  const hasSession = Boolean(searchParams?.session_id);
 
   return (
-    <main className="min-h-screen bg-[#f7f3ec] text-slate-900 flex items-center justify-center px-4 py-10">
-      <div className="w-full max-w-lg">
-        {/* Heading */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl md:text-4xl font-semibold text-amber-700">
-            Order complete 🎉
-          </h1>
-          <p className="text-slate-700 text-sm mt-2">
-            Thank you for your purchase — your PurePaw Flask is officially on its way.
-          </p>
-        </div>
-
-        {/* Card */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-          {sessionId ? (
-            <>
-              <h2 className="text-lg font-semibold text-slate-900 mb-2">
-                Order reference
-              </h2>
-
-              <div className="flex items-center justify-between bg-[#fdfaf4] rounded-xl px-4 py-3 border border-slate-200">
-                <code className="text-slate-700 font-mono text-sm truncate mr-3">
-                  {truncated}
-                </code>
-                <button
-                  onClick={copyToClipboard}
-                  className="text-xs px-3 py-1 rounded-full border border-slate-300 hover:border-amber-600 hover:text-amber-700 transition"
-                >
-                  {copied ? "Copied" : "Copy"}
-                </button>
-              </div>
-
-              <p className="text-xs text-slate-600 mt-3">
-                Keep this reference handy — it helps us find your order instantly if you ever need support.
-              </p>
-            </>
-          ) : (
-            <>
-              <h2 className="text-lg font-semibold text-slate-900 mb-3">
-                Order reference missing
-              </h2>
-              <p className="text-sm text-slate-700">
-                Your payment went through successfully, but the reference
-                wasn’t included in this link. If you need any help, email us
-                with your checkout email and approximate purchase time.
-              </p>
-            </>
-          )}
-
-          {/* What happens next */}
-          <div className="mt-6 border-t border-slate-200 pt-5">
-            <h3 className="text-sm font-semibold text-slate-900">
-              What happens next?
-            </h3>
-            <ul className="text-xs text-slate-700 mt-2 space-y-1.5 leading-relaxed">
-              <li>• Your pet artwork has already been sent to production.</li>
-              <li>• Your PurePaw Flask will be printed on a premium 500ml stainless bottle.</li>
-              <li>• You’ll receive an email update once it dispatches.</li>
-              <li>• Your flask includes a scannable QR memory page — share it with friends once it arrives!</li>
-            </ul>
+    <main className="min-h-screen bg-[#f7f3ed] px-4 py-8 text-slate-900 sm:px-6 sm:py-12">
+      <div className="mx-auto max-w-4xl">
+        <div className="mb-4 flex justify-center">
+          <div className="overflow-hidden rounded-[20px] border border-stone-200 bg-[#efe7d7] shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
+            <Image
+              src="/purepawstudio-logo.png"
+              alt="PurePaw Studio"
+              width={88}
+              height={88}
+              priority
+              className="h-[88px] w-[88px] object-cover sm:h-[92px] sm:w-[92px]"
+            />
           </div>
         </div>
 
-        {/* Buttons */}
-        <div className="flex justify-center gap-3 mt-8 text-sm">
-          <Link
-            href="/"
-            className="rounded-full bg-slate-900 text-white px-5 py-2 font-medium hover:bg-slate-800 transition"
-          >
-            Back to studio
-          </Link>
-          <Link
-            href="/orders"
-            className="rounded-full border border-slate-300 px-5 py-2 text-slate-900 font-medium hover:bg-[#f9f4ed] transition"
-          >
-            View my orders
-          </Link>
+        <div className="mb-5 flex justify-center">
+          <div className="inline-flex rounded-full border border-amber-300 bg-amber-50 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.26em] text-amber-700">
+            PurePaw order confirmed
+          </div>
         </div>
+
+        <section className="overflow-hidden rounded-[28px] border border-stone-200 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:rounded-[32px]">
+          <div className="bg-gradient-to-b from-[#fcf8f2] to-white px-6 pb-8 pt-8 sm:px-10 sm:pb-10 sm:pt-10">
+            <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 shadow-[0_8px_24px_rgba(16,185,129,0.10)]">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                className="h-7 w-7"
+                stroke="currentColor"
+                strokeWidth="2.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M20 6 9 17l-5-5" />
+              </svg>
+            </div>
+
+            <h1 className="max-w-3xl text-4xl font-bold leading-[1.02] tracking-tight text-slate-950 sm:text-5xl">
+              Your order is in — and your bottle is on the way
+            </h1>
+
+            <p className="mt-5 max-w-2xl text-[17px] leading-8 text-slate-600 sm:text-lg">
+              Thanks for ordering with PurePaw Studio. We’ve received your
+              payment and your custom bottle is now being prepared for dispatch.
+            </p>
+
+            {hasSession ? (
+              <div className="mt-5 inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-700">
+                Payment received successfully
+              </div>
+            ) : null}
+          </div>
+
+          <div className="border-t border-stone-100 px-6 py-8 sm:px-10 sm:py-10">
+            <div className="grid gap-4 sm:grid-cols-3 sm:gap-5">
+              <div className="rounded-[22px] border border-stone-200 bg-stone-50 p-5 sm:p-6">
+                <div className="mb-4 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-sm font-semibold text-slate-900 border border-stone-200">
+                  1
+                </div>
+                <p className="text-base font-semibold text-slate-900">
+                  Order confirmed
+                </p>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  Your confirmation email is on its way with the key details of
+                  your order.
+                </p>
+              </div>
+
+              <div className="rounded-[22px] border border-stone-200 bg-stone-50 p-5 sm:p-6">
+                <div className="mb-4 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-sm font-semibold text-slate-900 border border-stone-200">
+                  2
+                </div>
+                <p className="text-base font-semibold text-slate-900">
+                  We prepare your bottle
+                </p>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  Your PurePaw bottle is now being prepared and readied for
+                  fulfilment.
+                </p>
+              </div>
+
+              <div className="rounded-[22px] border border-stone-200 bg-stone-50 p-5 sm:p-6">
+                <div className="mb-4 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-sm font-semibold text-slate-900 border border-stone-200">
+                  3
+                </div>
+                <p className="text-base font-semibold text-slate-900">
+                  Tracking follows later
+                </p>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  Once your order has been dispatched, we’ll email your tracking
+                  details separately.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-8 rounded-[24px] border border-stone-200 bg-[#faf7f2] p-5 sm:p-6">
+              <h2 className="text-base font-semibold text-slate-900">
+                What happens next
+              </h2>
+
+              <div className="mt-4 space-y-3 text-sm leading-6 text-slate-700">
+                <p>Keep an eye on your inbox for your confirmation email.</p>
+                <p>Your bottle is now moving through preparation and fulfilment.</p>
+                <p>
+                  Need help before dispatch? Email{" "}
+                  <a
+                    href="mailto:support@purepawstudio.com"
+                    className="font-semibold text-slate-900 underline decoration-amber-400 underline-offset-4"
+                  >
+                    support@purepawstudio.com
+                  </a>
+                  .
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Link
+                href="/"
+                className="inline-flex min-h-[48px] items-center justify-center rounded-full bg-slate-950 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+              >
+                Back to home
+              </Link>
+
+              <Link
+                href="/orders"
+                className="inline-flex min-h-[48px] items-center justify-center rounded-full border border-stone-300 bg-white px-6 py-3 text-sm font-semibold text-slate-900 transition hover:bg-stone-50"
+              >
+                Need help with your order?
+              </Link>
+            </div>
+          </div>
+        </section>
       </div>
     </main>
-  );
-}
-
-export default function SuccessPage() {
-  return (
-    <Suspense fallback={<div className="p-10 text-center">Loading…</div>}>
-      <SuccessInner />
-    </Suspense>
   );
 }
