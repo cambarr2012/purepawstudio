@@ -190,7 +190,6 @@ async function standardizeArtForFlask(imageBase64: string): Promise<string> {
 
       ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
-      // ✅ Was 0.8 — that double-normalised your already-normalised art
       const MAX_RATIO = 0.92;
       const maxDrawSize = CANVAS_SIZE * MAX_RATIO;
 
@@ -215,7 +214,6 @@ async function standardizeArtForFlask(imageBase64: string): Promise<string> {
     img.src = imageBase64 as string;
   });
 }
-
 
 type GenStep =
   | "remove_bg"
@@ -305,9 +303,12 @@ export default function HomeClient() {
     if (!artworkId) return;
 
     const styleForCheckout = activeDesign?.styleId ?? styleId;
+    const productType = previewProduct === "gym" ? "gym_bottle" : "flask";
+
     const query = new URLSearchParams({
       artworkId,
       styleId: styleForCheckout,
+      productType,
     });
 
     router.push(`/checkout?${query.toString()}`);
@@ -421,7 +422,6 @@ export default function HomeClient() {
 
       let imageBase64: string;
 
-      // Prefer already processed image if available
       if (processedUrl && processedUrl.startsWith("data:image")) {
         imageBase64 = processedUrl;
       } else {
@@ -439,7 +439,6 @@ export default function HomeClient() {
         imageBase64 = base64Source;
       }
 
-      // Safety compress before generate
       try {
         setGenStep("polish");
         imageBase64 = await compressBase64Image(imageBase64, {
@@ -501,7 +500,9 @@ export default function HomeClient() {
         setGenStep("prepare_preview");
         setGenerateProgress(96);
 
-        setDesigns((prev) => [...prev, newDesign].slice(0, MAX_GENERATIONS_PER_PHOTO));
+        setDesigns((prev) =>
+          [...prev, newDesign].slice(0, MAX_GENERATIONS_PER_PHOTO)
+        );
         setActiveDesignIndex(() => generationCount);
 
         if (saved?.artworkId) setArtworkId(saved.artworkId);
@@ -558,7 +559,8 @@ export default function HomeClient() {
 
     if (!qualityResult) return null;
 
-    const { score, status, face, sharpness, lighting, background } = qualityResult;
+    const { score, status, face, sharpness, lighting, background } =
+      qualityResult;
     const styles = getStatusStyles(status);
 
     let headline: string;
@@ -646,7 +648,6 @@ export default function HomeClient() {
   const stepLabelClass = (active: boolean) =>
     `text-[11px] ${active ? "text-amber-700" : "text-slate-400"}`;
 
-  // Overall flow progress (Upload → Quality → Design → Checkout)
   let overallStep = 1;
   if (previewUrl) overallStep = 1;
   if (qualityResult && qualityResult.status !== "bad") overallStep = 2;
@@ -662,50 +663,45 @@ export default function HomeClient() {
   return (
     <main className="min-h-screen bg-[#f7f3ec] text-slate-900">
       <div className="w-full max-w-6xl mx-auto px-4 py-8 md:py-12">
-        {/* Top nav */}
         <TopNav />
 
         <header className="mb-6 text-center">
           <p className="hidden sm:block text-[11px] uppercase tracking-[0.25em] text-amber-600 mb-2">
-            PERSONALISED PET FLASKS
+            PERSONALISED PET DRINKWARE
           </p>
           <h1 className="text-3xl md:text-4xl font-semibold mb-2 tracking-tight text-slate-900">
-            Design your personalised PurePaw Flask.
+            Design your personalised PurePaw bottle or flask.
           </h1>
 
-          {/* Price chip */}
           <div className="mb-3 flex justify-center">
             <div className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] text-slate-700 shadow-sm">
               <span className="font-medium text-slate-900">From £19.99</span>
               <span className="mx-1.5 text-slate-300">·</span>
               <span className="text-slate-500">
-                Stainless steel · UK fulfilment
+                Flask or gym bottle · UK fulfilment
               </span>
             </div>
           </div>
 
-          {/* Copy */}
           <p className="hidden sm:block text-slate-600 max-w-2xl mx-auto text-sm md:text-base">
-            Upload a photo, choose your pet’s vibe and preview your flask before you
-            order.
+            Upload a photo, choose your pet’s vibe and preview it on your
+            selected bottle or flask before you order.
           </p>
           <p className="sm:hidden text-slate-600 max-w-md mx-auto text-sm">
-            Upload a photo, choose a vibe, preview your flask.
+            Upload a photo, choose a vibe, preview your bottle or flask.
           </p>
 
-          {/* Mobile: start */}
           <div className="mt-4 sm:hidden flex justify-center">
             <button
               type="button"
               onClick={scrollToStep1}
               className="inline-flex items-center gap-2 rounded-full bg-amber-400 text-slate-900 text-xs font-medium px-4 py-2 shadow-[0_10px_25px_rgba(251,191,36,0.35)]"
             >
-              <span>Start your flask</span>
+              <span>Start your design</span>
               <span className="text-[13px]">↓</span>
             </button>
           </div>
 
-          {/* Trust row */}
           <div className="mt-4 flex justify-center">
             <div className="text-[11px] text-slate-500 flex items-center gap-2">
               <span>UK printing</span>
@@ -717,7 +713,6 @@ export default function HomeClient() {
           </div>
         </header>
 
-        {/* Steps + progress */}
         <div className="mb-6 space-y-3">
           <div className="flex flex-wrap items-center justify-center gap-4 text-[11px]">
             <div className="flex items-center gap-2">
@@ -781,19 +776,18 @@ export default function HomeClient() {
         </div>
 
         <div className="grid gap-8 md:grid-cols-[1.2fr,1fr] items-start">
-          {/* Left */}
           <section
             ref={step1Ref}
             className="bg-white border border-slate-200 rounded-2xl p-5 md:p-6 space-y-6 shadow-[0_18px_45px_rgba(15,23,42,0.06)]"
           >
-            {/* Step 1 */}
             <div>
               <h2 className="text-lg font-medium mb-2 text-slate-900">
                 Step 1 · Upload your pet photo
               </h2>
 
               <p className="text-[11px] text-slate-500 mb-3">
-                Pick a sharp photo where your pet’s face is clear. Phone photos are perfect.
+                Pick a sharp photo where your pet’s face is clear. Phone photos
+                are perfect.
               </p>
 
               <div className="space-y-3">
@@ -841,7 +835,6 @@ export default function HomeClient() {
                 {renderQualityMessage()}
               </div>
 
-              {/* Step 2 */}
               <div className="pt-5 border-t border-slate-200 mt-5">
                 <h3 className="text-sm font-medium text-slate-900 mb-2">
                   Step 2 · Quick photo check
@@ -872,30 +865,28 @@ export default function HomeClient() {
               </div>
             </div>
 
-            {/* Step 3 (clean locked state) */}
             <div className="pt-5 border-t border-slate-200">
               <h2 className="text-lg font-medium text-slate-900">
                 Step 3 · Choose a style &amp; create your design
               </h2>
 
-              {/* Lock callout (no overlap / no inline note) */}
               {step1Active && (
                 <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-3">
                   <p className="text-[12px] font-medium text-amber-900">
                     Run the photo check above to unlock this step.
                   </p>
                   <p className="text-[11px] text-amber-800 opacity-90">
-                    Once it passes, you’ll be able to create your flask design.
+                    Once it passes, you’ll be able to create your design.
                   </p>
                 </div>
               )}
 
-              {/* Content: collapse when locked for cleanliness */}
               {!step1Active && (
                 <>
                   {qualityResult?.status === "bad" && (
                     <p className="mt-3 text-[11px] text-rose-600">
-                      This photo is unlikely to produce a good result. Try a clearer, better-lit photo.
+                      This photo is unlikely to produce a good result. Try a
+                      clearer, better-lit photo.
                     </p>
                   )}
 
@@ -1002,14 +993,16 @@ export default function HomeClient() {
                               />
                             </div>
                             <p className="mt-2 text-[11px] text-slate-500 text-center">
-                              Please keep this tab open — we’re creating a custom design for your pet.
+                              Please keep this tab open — we’re creating a
+                              custom design for your pet.
                             </p>
                           </div>
                         </div>
                       )}
 
                       <p className="mt-1 text-[11px] text-slate-500">
-                        We keep your pet’s unique face and markings and prepare a print-ready design for your flask.
+                        We keep your pet’s unique face and markings and prepare
+                        a print-ready design for your selected product.
                       </p>
 
                       {artError && (
@@ -1018,7 +1011,8 @@ export default function HomeClient() {
 
                       {generatedArtUrl && !artError && (
                         <p className="text-[11px] text-emerald-700">
-                          Design created ✓ — your preview on the right is updated.
+                          Design created ✓ — your preview on the right is
+                          updated.
                         </p>
                       )}
 
@@ -1040,14 +1034,12 @@ export default function HomeClient() {
             </div>
           </section>
 
-          {/* Right */}
           <section className="bg-white border border-slate-200 rounded-2xl p-5 md:p-6 flex flex-col shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
             <div className="flex items-center justify-between gap-3 mb-4">
               <h2 className="text-sm font-medium text-slate-900">
                 Live PurePaw preview
               </h2>
 
-              {/* Toggle */}
               <div className="inline-flex rounded-full border border-slate-200 bg-slate-50 p-1">
                 <button
                   type="button"
@@ -1098,21 +1090,40 @@ export default function HomeClient() {
             </p>
 
             {generatedArtUrl ? (
-                <>
+              <>
                 <p className="mt-1 text-[11px] text-amber-700">
-                    This is the design that will be printed on your flask.
-                    </p>
-                    <p className="mt-1 text-[10px] text-slate-500">
-                        Preview is for guidance — final sizing and placement are refined for the best print result.
-                        </p>
-                        </>
-                        ) : (
-                        <p className="mt-1 text-[11px] text-slate-500">
-                            Create your design to see the final flask preview here.
-                            </p>
-                        )}
+                  This is the design that will be printed on your{" "}
+                  {previewProduct === "gym" ? "gym bottle" : "flask"}.
+                </p>
 
-            {/* Design selector */}
+                <div className="mt-3 rounded-xl border border-amber-100 bg-amber-50/70 px-3 py-3">
+                  <p className="text-[11px] font-medium text-amber-900">
+                    Preview guidance
+                  </p>
+                  <p className="mt-1 text-[10px] leading-5 text-slate-600">
+                    Your preview is a close visual guide, but final artwork
+                    sizing and placement may be refined slightly for the best
+                    print result.
+                  </p>
+                  <ul className="mt-2 space-y-1 text-[10px] leading-5 text-slate-600">
+                    <li>• Use a clear, front-facing photo for the best result</li>
+                    <li>• Lower vision-score images usually produce weaker generations</li>
+                    <li>• If your result looks off despite a strong photo, try regenerating</li>
+                  </ul>
+                  <p className="mt-2 text-[10px] leading-5 text-slate-500">
+                    Because each design is uniquely generated, small variations
+                    and occasional generation issues can occur.
+                  </p>
+                </div>
+              </>
+            ) : (
+              <p className="mt-1 text-[11px] text-slate-500">
+                Create your design to see the final{" "}
+                {previewProduct === "gym" ? "gym bottle" : "flask"} preview
+                here.
+              </p>
+            )}
+
             {designs.length > 1 && (
               <div className="mt-5 pt-4 border-t border-slate-200">
                 <h3 className="text-xs font-medium text-slate-900 mb-1">
@@ -1162,7 +1173,6 @@ export default function HomeClient() {
               </div>
             )}
 
-            {/* Source preview */}
             <div className="mt-6 pt-4 border-t border-slate-200">
               <h3 className="text-xs font-medium text-slate-900 mb-2">
                 Your photo
@@ -1184,13 +1194,12 @@ export default function HomeClient() {
                 )}
 
                 <p className="text-[11px] text-slate-500">
-                  We use your photo as the reference, keep the face and markings,
-                  and apply the style you choose.
+                  We use your photo as the reference, keep the face and
+                  markings, and apply the style you choose.
                 </p>
               </div>
             </div>
 
-            {/* Before/after slider */}
             {sourcePreview && generatedArtUrl && (
               <div className="mt-6 pt-4 border-t border-slate-200">
                 <h3 className="text-xs font-medium text-slate-900 mb-2">
@@ -1249,7 +1258,6 @@ export default function HomeClient() {
               </div>
             )}
 
-            {/* Checkout */}
             <div className="mt-6 pt-4 border-t border-slate-200">
               <h3 className="text-xs font-medium text-slate-900 mb-2">
                 Step 3 · Checkout
@@ -1265,7 +1273,9 @@ export default function HomeClient() {
                 onClick={handleGoToCheckout}
                 className="w-full rounded-lg bg-slate-900 text-white text-xs font-medium py-2.5 disabled:opacity-60 hover:bg-slate-900 transition"
               >
-                {canGoToCheckout ? "Continue to checkout" : "Create a saved design first"}
+                {canGoToCheckout
+                  ? "Continue to checkout"
+                  : "Create a saved design first"}
               </button>
 
               <p className="mt-3 text-[10px] text-slate-500 text-center">

@@ -1,4 +1,3 @@
-// src/app/api/checkout/route.ts
 import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -6,16 +5,15 @@ export const dynamic = "force-dynamic";
 
 interface CheckoutBody {
   orderId?: string;
-  id?: string; // some UIs send `id` instead
+  id?: string;
   artworkId?: string;
   artworkUrl?: string;
   styleId?: string;
+  productType?: string;
   email?: string;
-  // ignore any other fields
   [key: string]: unknown;
 }
 
-// Simple GET – helps us check the route is live
 export async function GET() {
   return NextResponse.json({
     ok: true,
@@ -41,19 +39,15 @@ export async function POST(req: NextRequest) {
         ? body.artworkId
         : "";
 
-    // 1) Try to read artworkUrl from body
     let artworkUrl =
       body?.artworkUrl && typeof body.artworkUrl === "string"
         ? body.artworkUrl
         : undefined;
 
-    // 2) If missing, compute it from Supabase URL + bucket + artworkId
     const supabaseUrl = process.env.SUPABASE_URL;
-    const artworksBucket =
-      process.env.SUPABASE_ARTWORKS_BUCKET || "artworks";
+    const artworksBucket = process.env.SUPABASE_ARTWORKS_BUCKET || "artworks";
 
     if (!artworkUrl && artworkId && supabaseUrl) {
-      // NOTE: keep your existing public path convention
       artworkUrl = `${supabaseUrl}/storage/v1/object/public/${artworksBucket}/artworks/${artworkId}.png`;
       console.log("[checkout] Computed artworkUrl from artworkId:", artworkUrl);
     }
@@ -66,7 +60,11 @@ export async function POST(req: NextRequest) {
         ? body.styleId
         : undefined;
 
-    // More robust SITE_URL handling for local + Vercel preview + prod
+    const productType =
+      body?.productType && typeof body.productType === "string"
+        ? body.productType
+        : "flask";
+
     const headerOrigin = req.headers.get("origin");
     const siteUrl =
       process.env.NEXT_PUBLIC_SITE_URL ||
@@ -94,25 +92,23 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Lazy import Stripe so this route never accidentally becomes edge
     const StripeModule = await import("stripe");
     const Stripe = StripeModule.default;
     const stripe = new Stripe(stripeSecretKey);
 
     const metadata: Record<string, string | undefined> = {
-      // camelCase – main path
       orderId,
       artworkId,
       artworkUrl,
       styleId,
-      // snake_case for older code paths / success page expectations
+      productType,
       order_id: orderId,
       artwork_id: artworkId,
       artwork_url: artworkUrl,
       style_id: styleId,
+      product_type: productType,
     };
 
-    // Single quantity ONLY (ignore any quantity passed in)
     const sessionParams: any = {
       mode: "payment",
       client_reference_id: orderId,
@@ -146,8 +142,9 @@ export async function POST(req: NextRequest) {
         artworkId,
         artworkUrl,
         styleId: styleId ?? null,
+        productType,
         checkoutUrl: session.url,
-        url: session.url, // alias in case frontend expects `url`
+        url: session.url,
         sessionId: session.id,
       },
       { status: 200 }
