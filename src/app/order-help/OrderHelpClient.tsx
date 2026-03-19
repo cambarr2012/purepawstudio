@@ -24,93 +24,107 @@ export default function OrderHelpClient() {
         </div>
 
         {/* Header */}
-        <header className="mb-6">
-          <p className="text-[11px] uppercase tracking-[0.25em] text-amber-600/80 mb-2">
-            Order help
+        <header className="mb-8">
+          <p className="mb-3 inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.28em] text-amber-700 shadow-sm">
+            PurePaw Order Support
           </p>
-          <h1 className="text-2xl md:text-3xl font-semibold tracking-tight mb-2">
-            Need help with an order?
+
+          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-slate-950 mb-3">
+            Help with your order
+            <span className="block text-slate-700">updates, changes and support</span>
           </h1>
-          <p className="text-sm md:text-base text-slate-700">
-            Whether something&apos;s gone wrong or you just have a question,
-            this is the easiest way to reach us.
+
+          <p className="max-w-2xl text-sm md:text-base leading-7 text-slate-700">
+            Need a hand with an order? Whether you are waiting on tracking,
+            need to update delivery details, or your order has arrived with an
+            issue, this page outlines the quickest way to get support from
+            PurePaw Studio.
           </p>
         </header>
 
         <section className="space-y-5 text-sm">
           {/* Common questions */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <h2 className="text-base font-medium mb-1 text-slate-900">
-              Common questions
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-lg font-semibold mb-2 text-slate-900">
+              Common order questions
             </h2>
-            <ul className="mt-2 space-y-2 text-[13px] text-slate-700">
+            <ul className="space-y-3 text-[14px] leading-7 text-slate-700">
               <li>
-                • <span className="font-semibold">“Where is my order?”</span>{" "}
-                — check your inbox for the Stripe receipt and our confirmation
-                email. If it&apos;s been more than 7 working days, contact us
-                below.
+                • <span className="font-semibold text-slate-900">Where is my order?</span>{" "}
+                Check your confirmation email first. Tracking is sent once your
+                order has been dispatched, and you can also visit{" "}
+                <Link
+                  href="/orders"
+                  className="font-medium text-amber-700 hover:text-amber-600 underline-offset-2 hover:underline"
+                >
+                  My orders
+                </Link>{" "}
+                for the latest guidance.
               </li>
               <li>
-                •{" "}
-                <span className="font-semibold">“My flask arrived damaged.”</span>{" "}
-                — send us a clear photo of the damage and your order ID and
-                we&apos;ll sort a replacement or refund.
+                • <span className="font-semibold text-slate-900">Can I change my delivery details?</span>{" "}
+                If your order has not moved too far into production, we can
+                often help with address corrections or delivery detail updates.
+                Contact us as soon as possible.
               </li>
               <li>
-                •{" "}
-                <span className="font-semibold">
-                  “Can I change my shipping address?”
-                </span>{" "}
-                — if your order hasn&apos;t gone into production yet, we can
-                usually update it.
+                • <span className="font-semibold text-slate-900">My order arrived damaged or there is a problem with it.</span>{" "}
+                Send us a clear photo, your order ID if you have it, and a short
+                explanation of the issue. We will review it quickly and work
+                with you on the best next step.
               </li>
             </ul>
           </div>
 
           {/* How to contact */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <h2 className="text-base font-medium mb-1 text-slate-900">
-              How to contact us
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-lg font-semibold mb-2 text-slate-900">
+              The fastest way to contact us
             </h2>
-            <p className="text-[13px] text-slate-700 mb-2">
-              For now we&apos;re handling support via email so we can keep
-              things personal and fast.
+            <p className="text-[14px] leading-7 text-slate-700 mb-3">
+              We currently handle support by email so we can keep everything
+              clear, personal and easy to follow.
             </p>
-            <p className="text-[13px] text-slate-700">
-              Please email{" "}
-              <span className="font-mono text-[12px] text-amber-700">
+            <p className="text-[14px] leading-7 text-slate-700">
+              Email{" "}
+              <span className="font-mono text-[13px] text-amber-700">
                 support@purepawstudio.com
               </span>{" "}
-              with:
+              and include:
             </p>
-            <ul className="mt-2 text-[13px] text-slate-700 space-y-1">
+            <ul className="mt-3 space-y-2 text-[14px] leading-7 text-slate-700">
               <li>• Your full name</li>
-              <li>• The email you used at checkout</li>
-              <li>• Your order ID (if you have it)</li>
-              <li>• A short description of what you need help with</li>
+              <li>• The email used at checkout</li>
+              <li>• Your order ID, if available</li>
+              <li>• A short summary of the help you need</li>
+              <li>• Photos, if your order arrived damaged or incorrect</li>
             </ul>
-            <p className="mt-2 text-[12px] text-slate-500">
+            <p className="mt-3 text-[12px] leading-6 text-slate-500">
               We aim to reply within{" "}
-              <span className="font-semibold text-slate-800">
-                1–2 working days
-              </span>
-              .
+              <span className="font-semibold text-slate-800">1–2 working days</span>.
             </p>
           </div>
 
-          {/* Order status */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <h2 className="text-base font-medium mb-1 text-slate-900">
-              Order status
+          {/* Order updates */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-lg font-semibold mb-2 text-slate-900">
+              Order updates and tracking
             </h2>
-            <p className="text-[13px] text-slate-700">
-              We&apos;re building a self-serve order tracking page. For now,
-              the fastest way to get an update is to email us with your order
-              details or reply directly to your confirmation email.
+            <p className="text-[14px] leading-7 text-slate-700">
+              Once your order has been dispatched, tracking details are sent by
+              email. If you need an update before then, the quickest route is to
+              contact us with your order details or reply directly to your order
+              confirmation email.
             </p>
-            <p className="mt-2 text-[12px] text-slate-500">
-              Tip: keep your Stripe receipt email handy — it contains the exact
-              date and amount paid which helps us find your order quickly.
+            <p className="mt-3 text-[12px] leading-6 text-slate-500">
+              For expected production and delivery timeframes, visit our{" "}
+              <Link
+                href="/shipping"
+                className="font-medium text-amber-700 hover:text-amber-600 underline-offset-2 hover:underline"
+              >
+                shipping page
+              </Link>
+              .
             </p>
           </div>
         </section>

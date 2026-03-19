@@ -10,10 +10,9 @@ export default function OrdersPage() {
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    // Placeholder behaviour for now
     setSubmitting(true);
     setMessage(
-      "Order lookup is coming soon. For now, please check your confirmation email or contact support with your order details."
+      "Thanks — live order lookup is being finalised. For now, please check your confirmation email or contact support with your order ID or checkout email and we’ll send you an update."
     );
     setTimeout(() => setSubmitting(false), 500);
   }
@@ -21,7 +20,6 @@ export default function OrdersPage() {
   return (
     <main className="min-h-screen bg-[#f7f3ec] text-slate-900">
       <div className="w-full max-w-3xl mx-auto px-4 py-10 md:py-12">
-        {/* Top bar */}
         <div className="mb-6 flex items-center justify-between">
           <button
             onClick={() => history.back()}
@@ -38,47 +36,62 @@ export default function OrdersPage() {
           </Link>
         </div>
 
-        {/* Header */}
-        <header className="mb-6">
-          <p className="text-[11px] uppercase tracking-[0.25em] text-amber-600/80 mb-2">
-            My orders
+        <header className="mb-8">
+          <p className="mb-3 inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.28em] text-amber-700 shadow-sm">
+            PurePaw Order Tracking
           </p>
-          <h1 className="text-2xl md:text-3xl font-semibold tracking-tight mb-2">
-            Check your order status
+
+          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-slate-950 mb-3">
+            Order updates
+            <span className="block text-slate-700">tracking and support</span>
           </h1>
-          <p className="text-sm md:text-base text-slate-700">
-            We&apos;re building a live tracking view for your PurePaw Studio
-            orders. For now this page explains how to get updates.
+
+          <p className="max-w-2xl text-sm md:text-base leading-7 text-slate-700">
+            We’ll keep you updated as your PurePaw Studio order moves through
+            production and dispatch. Tracking details are added once your order
+            has been shipped.
           </p>
         </header>
 
         <section className="space-y-5 text-sm">
-          {/* Coming soon */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <h2 className="text-base font-medium mb-1 text-slate-900">
-              Coming soon: live order lookup
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-lg font-semibold mb-2 text-slate-900">
+              What to expect
             </h2>
-            <p className="text-[13px] text-slate-700">
-              Soon you&apos;ll be able to enter your order ID or email here and
-              see a live status:{" "}
-              <span className="italic">
-                Received → In production → Shipped
-              </span>{" "}
-              plus tracking info when available.
-            </p>
+            <div className="space-y-3 text-[14px] leading-7 text-slate-700">
+              <p>
+                After checkout, you should receive an order confirmation by
+                email.
+              </p>
+              <p>
+                Once your order has been dispatched, we’ll send your tracking
+                details by email.
+              </p>
+              <p>
+                Production and delivery times can vary slightly depending on the
+                product and destination, so our{" "}
+                <Link
+                  href="/shipping"
+                  className="font-medium text-amber-700 hover:text-amber-600 underline-offset-2 hover:underline"
+                >
+                  shipping page
+                </Link>{" "}
+                is the best place to check current timelines.
+              </p>
+            </div>
           </div>
 
-          {/* MVP lookup form */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <h2 className="text-base font-medium mb-2 text-slate-900">
-              Quick lookup (for now)
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-lg font-semibold mb-2 text-slate-900">
+              Request an order update
             </h2>
-            <p className="text-[13px] text-slate-700 mb-3">
-              While we finish the tracking system, you can still reach out using
-              your order ID or the email you used at checkout.
+            <p className="text-[14px] leading-7 text-slate-700 mb-3">
+              Enter your order ID or the email used at checkout and we’ll point
+              you in the right direction while live order lookup is being
+              completed.
             </p>
 
-            <form onSubmit={handleSubmit} className="space-y-2 text-[11px]">
+            <form onSubmit={handleSubmit} className="space-y-3 text-[11px]">
               <label className="flex flex-col gap-1">
                 <span className="text-slate-800">
                   Order ID or checkout email
@@ -87,7 +100,7 @@ export default function OrdersPage() {
                   type="text"
                   value={lookupValue}
                   onChange={(e) => setLookupValue(e.target.value)}
-                  className="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs text-slate-900 outline-none focus:ring-2 focus:ring-amber-400"
+                  className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-amber-400"
                   placeholder="Paste your order ID or email"
                   disabled={submitting}
                 />
@@ -95,45 +108,46 @@ export default function OrdersPage() {
               <button
                 type="submit"
                 disabled={submitting || !lookupValue}
-                className="mt-2 w-full rounded-lg bg-slate-900 text-slate-50 text-xs font-medium py-2 disabled:opacity-60 hover:bg-slate-800 transition"
+                className="mt-2 w-full rounded-lg bg-slate-900 text-slate-50 text-sm font-medium py-2.5 disabled:opacity-60 hover:bg-slate-800 transition"
               >
                 {submitting ? "Checking…" : "Request an update"}
               </button>
             </form>
 
             {message && (
-              <p className="mt-2 text-[11px] text-slate-600">{message}</p>
+              <p className="mt-3 text-[12px] leading-6 text-slate-600">
+                {message}
+              </p>
             )}
-
-            <p className="mt-4 text-[12px] text-slate-600">
-              Alternatively, email{" "}
-              <span className="font-mono text-[12px] text-amber-700">
-                support@purepawstudio.com
-              </span>{" "}
-              with your order details and we&apos;ll reply with a status
-              update.
-            </p>
           </div>
 
-          {/* Where else to check */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <h2 className="text-base font-medium mb-1 text-slate-900">
-              Where else to check
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-lg font-semibold mb-2 text-slate-900">
+              Helpful order information
             </h2>
-            <ul className="mt-2 space-y-1 text-[13px] text-slate-700">
-              <li>• Your email inbox for our confirmation email</li>
-              <li>• Your Stripe receipt for payment confirmation</li>
+            <ul className="space-y-2 text-[14px] leading-7 text-slate-700">
+              <li>• Keep your order confirmation email handy</li>
+              <li>• Check your inbox and junk folder for shipping updates</li>
+              <li>• Tracking is sent once your order has been dispatched</li>
               <li>
-                •{" "}
+                • For delivery timelines, visit our{" "}
                 <Link
                   href="/shipping"
-                  className="text-amber-700 hover:text-amber-600 underline-offset-2 hover:underline"
+                  className="font-medium text-amber-700 hover:text-amber-600 underline-offset-2 hover:underline"
                 >
-                  Shipping page
-                </Link>{" "}
-                for current production and delivery timelines
+                  shipping page
+                </Link>
               </li>
             </ul>
+
+            <p className="mt-4 text-[13px] leading-6 text-slate-600">
+              Need help? Email{" "}
+              <span className="font-mono text-[13px] text-amber-700">
+                support@purepawstudio.com
+              </span>{" "}
+              with your order ID or checkout email and we’ll get back to you as
+              soon as possible.
+            </p>
           </div>
         </section>
       </div>

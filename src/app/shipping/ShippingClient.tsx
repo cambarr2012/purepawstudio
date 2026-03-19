@@ -24,69 +24,77 @@ export default function ShippingClient() {
         </div>
 
         {/* Header */}
-        <header className="mb-6">
-          <p className="text-[11px] uppercase tracking-[0.25em] text-amber-600/80 mb-2">
-            Shipping &amp; Production
+        <header className="mb-8">
+          <p className="mb-3 inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.28em] text-amber-700 shadow-sm">
+            PurePaw Delivery Guide
           </p>
-          <h1 className="text-2xl md:text-3xl font-semibold tracking-tight mb-2">
-            How long will my PurePaw Flask take?
+
+          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-slate-950 mb-3">
+            Shipping, production
+            <span className="block text-slate-700">and delivery timelines</span>
           </h1>
-          <p className="text-sm md:text-base text-slate-700">
-            Every flask is made to order. We keep timelines clear and simple so
-            you know when to expect your delivery before you pay.
+
+          <p className="max-w-2xl text-sm md:text-base leading-7 text-slate-700">
+            Every PurePaw piece is made to order and prepared with care. We keep
+            our delivery guidance clear, simple and upfront so you know what to
+            expect from checkout to arrival.
           </p>
         </header>
 
         <section className="space-y-5 text-sm">
           {/* Production time */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <h2 className="text-base font-medium mb-1 text-slate-900">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-lg font-semibold mb-2 text-slate-900">
               Production time
             </h2>
-            <p className="text-[13px] text-slate-700">
+            <p className="text-[14px] leading-7 text-slate-700">
               Once your payment is confirmed, your design is prepared and sent
-              to production. Most flasks are{" "}
-              <span className="font-semibold">
+              into production. Most flasks are{" "}
+              <span className="font-semibold text-slate-900">
                 produced within 2–5 working days
               </span>
               .
             </p>
-            <p className="mt-2 text-[12px] text-slate-500">
-              If there&apos;s ever a delay, we&apos;ll let you know by email as
-              soon as possible.
+            <p className="mt-3 text-[12px] leading-6 text-slate-500">
+              If there&apos;s ever a delay, we&apos;ll keep you updated by email
+              as soon as possible.
             </p>
           </div>
 
           {/* UK shipping */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <h2 className="text-base font-medium mb-1 text-slate-900">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-lg font-semibold mb-2 text-slate-900">
               UK shipping
             </h2>
-            <p className="text-[13px] text-slate-700">
+            <p className="text-[14px] leading-7 text-slate-700">
               Standard tracked UK delivery is typically{" "}
-              <span className="font-semibold">2–3 working days</span> after
-              dispatch. Most customers receive their flask within{" "}
-              <span className="font-semibold">4–8 working days</span> from
-              placing an order.
+              <span className="font-semibold text-slate-900">
+                2–3 working days
+              </span>{" "}
+              after dispatch. Most customers receive their flask within{" "}
+              <span className="font-semibold text-slate-900">
+                4–8 working days
+              </span>{" "}
+              from placing an order.
             </p>
-            <p className="mt-2 text-[12px] text-slate-500">
+            <p className="mt-3 text-[12px] leading-6 text-slate-500">
               Your exact shipping cost and estimated delivery window are shown
               clearly at checkout before you pay.
             </p>
           </div>
 
           {/* International */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <h2 className="text-base font-medium mb-1 text-slate-900">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-lg font-semibold mb-2 text-slate-900">
               International shipping
             </h2>
-            <p className="text-[13px] text-slate-700">
+            <p className="text-[14px] leading-7 text-slate-700">
               We&apos;re starting with the UK first so we can keep quality and
               delivery times reliable. If you&apos;re outside the UK and
-              interested in ordering, drop us a message via{" "}
+              interested in ordering, send us a message via{" "}
               <Link
                 href="/order-help"
-                className="text-amber-700 hover:text-amber-600 underline-offset-2 hover:underline"
+                className="font-medium text-amber-700 hover:text-amber-600 underline-offset-2 hover:underline"
               >
                 order help
               </Link>{" "}
@@ -96,24 +104,24 @@ export default function ShippingClient() {
           </div>
 
           {/* Delays / issues */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <h2 className="text-base font-medium mb-1 text-slate-900">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-lg font-semibold mb-2 text-slate-900">
               Delays, issues &amp; damaged items
             </h2>
-            <p className="text-[13px] text-slate-700">
+            <p className="text-[14px] leading-7 text-slate-700">
               If your order is running late, has tracking issues, or arrives
-              damaged, we&apos;ll always work with you to fix it quickly. Start
-              by checking{" "}
+              damaged, we&apos;ll always work quickly to make it right. Start by
+              checking{" "}
               <Link
                 href="/orders"
-                className="text-amber-700 hover:text-amber-600 underline-offset-2 hover:underline"
+                className="font-medium text-amber-700 hover:text-amber-600 underline-offset-2 hover:underline"
               >
                 My orders
               </Link>{" "}
               for the latest status, or contact us via{" "}
               <Link
                 href="/order-help"
-                className="text-amber-700 hover:text-amber-600 underline-offset-2 hover:underline"
+                className="font-medium text-amber-700 hover:text-amber-600 underline-offset-2 hover:underline"
               >
                 order help
               </Link>

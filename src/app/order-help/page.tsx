@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import OrderHelpClient from "./OrderHelpClient";
 
 export const metadata: Metadata = {
-  title: "Order help",
+  title: "Order help and support | PurePaw Studio",
   description:
-    "Get help with an order, shipping changes, or damaged items. Contact PurePawStudio support and track your order status.",
+    "Get help with order updates, delivery questions, damaged items, and support requests for PurePaw Studio orders.",
 };
 
 export default function OrderHelpPage() {
