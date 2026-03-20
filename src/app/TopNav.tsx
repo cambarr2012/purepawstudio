@@ -52,14 +52,14 @@ export default function TopNav() {
               </Link>
 
               <nav className="hidden sm:flex items-center gap-3">
-                <Link href="/shipping" className={pillFilled}>
-                  Shipping
+                <Link href="/how-it-works" className={pillFilled}>
+                  How it works
                 </Link>
-                <Link href="/order-help" className={pillFilled}>
-                  Order help
+                <Link href="/shipping" className={pillFilled}>
+                  Shipping &amp; delivery
                 </Link>
                 <Link href="/orders" className={pillFilled}>
-                  My orders
+                  Track your order
                 </Link>
               </nav>
 
@@ -116,24 +116,26 @@ export default function TopNav() {
 
           <div className="space-y-2 p-4">
             <Link
-              href="/shipping"
+              href="/how-it-works"
               onClick={() => setOpen(false)}
               className={cardFilled}
             >
-              <p className="text-sm font-medium text-slate-900">Shipping</p>
+              <p className="text-sm font-medium text-slate-900">How it works</p>
               <p className="text-[11px] text-slate-600">
-                Delivery &amp; production
+                From photo to finished bottle
               </p>
             </Link>
 
             <Link
-              href="/order-help"
+              href="/shipping"
               onClick={() => setOpen(false)}
               className={cardFilled}
             >
-              <p className="text-sm font-medium text-slate-900">Order help</p>
+              <p className="text-sm font-medium text-slate-900">
+                Shipping &amp; delivery
+              </p>
               <p className="text-[11px] text-slate-600">
-                Support &amp; changes
+                Production, dispatch &amp; timing
               </p>
             </Link>
 
@@ -142,8 +144,34 @@ export default function TopNav() {
               onClick={() => setOpen(false)}
               className={cardFilled}
             >
-              <p className="text-sm font-medium text-slate-900">My orders</p>
-              <p className="text-[11px] text-slate-600">Track &amp; manage</p>
+              <p className="text-sm font-medium text-slate-900">
+                Track your order
+              </p>
+              <p className="text-[11px] text-slate-600">
+                Request an email update
+              </p>
+            </Link>
+
+            <Link
+              href="/faq"
+              onClick={() => setOpen(false)}
+              className={cardFilled}
+            >
+              <p className="text-sm font-medium text-slate-900">FAQ</p>
+              <p className="text-[11px] text-slate-600">
+                Quick answers and guidance
+              </p>
+            </Link>
+
+            <Link
+              href="/order-help"
+              onClick={() => setOpen(false)}
+              className={cardFilled}
+            >
+              <p className="text-sm font-medium text-slate-900">Contact us</p>
+              <p className="text-[11px] text-slate-600">
+                Damaged items and support
+              </p>
             </Link>
           </div>
 
