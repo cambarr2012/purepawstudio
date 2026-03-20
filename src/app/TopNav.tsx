@@ -37,7 +37,7 @@ export default function TopNav() {
       <header className="relative z-[60]">
         <div className="mx-auto max-w-6xl px-4 pt-[max(0.75rem,env(safe-area-inset-top))] sm:pt-6 lg:pt-8">
           <div className="mx-auto max-w-5xl">
-            <div className="flex items-center justify-between gap-4 rounded-[2rem] border border-[#efe2bb] bg-[#fbf7ec]/84 px-4 py-3 shadow-[0_8px_22px_rgba(15,23,42,0.04)] backdrop-blur-sm sm:px-6 sm:py-3.5 lg:px-7">
+            <div className="flex items-center justify-between gap-4 rounded-[2rem] border border-[#efe2bb] bg-[#fbf7ec]/84 px-4 py-3.5 shadow-[0_8px_22px_rgba(15,23,42,0.04)] backdrop-blur-sm sm:px-6 sm:py-4 lg:px-7 lg:py-4.5">
               <Link
                 href="/"
                 className="flex items-center gap-3 select-none"
@@ -46,7 +46,7 @@ export default function TopNav() {
                 <img
                   src="/purepawstudio-logo.png"
                   alt="PurePawStudio logo"
-                  className="h-[52px] w-auto rounded-xl object-contain sm:h-[64px] lg:h-[70px]"
+                  className="h-[64px] w-auto rounded-xl object-contain sm:h-[78px] lg:h-[86px]"
                   draggable={false}
                 />
               </Link>
@@ -67,11 +67,11 @@ export default function TopNav() {
                 <button
                   type="button"
                   onClick={() => setOpen(true)}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#e7d3a0] bg-[#f6ebcb]/92 text-slate-900 shadow-[0_4px_10px_rgba(15,23,42,0.04)] transition active:scale-[0.99]"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#e7d3a0] bg-[#f6ebcb]/92 text-slate-900 shadow-[0_4px_10px_rgba(15,23,42,0.04)] transition active:scale-[0.99]"
                   aria-label="Open menu"
                   aria-expanded={open}
                 >
-                  <span className="text-lg leading-none">☰</span>
+                  <span className="text-xl leading-none">☰</span>
                 </button>
               </div>
             </div>
