@@ -24,22 +24,20 @@ export default function TopNav() {
   }, [open]);
 
   const pillBase =
-    "px-4 py-2 rounded-full border text-[11px] transition shadow-sm";
-  const pillBorder = "border-amber-200/70";
-  const pillNeutral = `${pillBase} ${pillBorder} bg-white/80 text-slate-700 hover:bg-white hover:border-amber-300`;
-  const pillAccent = `${pillBase} ${pillBorder} bg-white/80 text-slate-900 hover:bg-white hover:border-amber-300`;
+    "px-4 py-2 rounded-full border text-[11px] transition";
+  const pillBorder = "border-[#e7d3a0]";
+  const pillFilled = `${pillBase} ${pillBorder} bg-[#f6ebcb]/92 text-slate-800 hover:bg-[#f2e2b3] hover:border-[#daba66]`;
 
   const cardBase = "block rounded-2xl border p-3 transition";
-  const cardBorder = "border-amber-200/60";
-  const cardNeutral = `${cardBase} ${cardBorder} bg-white hover:bg-amber-50/40`;
-  const cardAccent = `${cardBase} ${cardBorder} bg-white hover:bg-amber-50/60`;
+  const cardBorder = "border-[#e7d3a0]";
+  const cardFilled = `${cardBase} ${cardBorder} bg-[#f6ebcb]/92 hover:bg-[#f2e2b3]`;
 
   return (
     <>
       <header className="relative z-[60]">
         <div className="mx-auto max-w-6xl px-4 pt-[max(0.75rem,env(safe-area-inset-top))] sm:pt-6 lg:pt-8">
           <div className="mx-auto max-w-5xl">
-            <div className="flex items-center justify-between gap-4 rounded-[2rem] border border-slate-200 bg-white/90 px-4 py-3 backdrop-blur-md shadow-[0_18px_45px_rgba(15,23,42,0.08)] sm:px-6 sm:py-3.5 lg:px-7">
+            <div className="flex items-center justify-between gap-4 rounded-[2rem] border border-[#efe2bb] bg-[#fbf7ec]/84 px-4 py-3 shadow-[0_8px_22px_rgba(15,23,42,0.04)] backdrop-blur-sm sm:px-6 sm:py-3.5 lg:px-7">
               <Link
                 href="/"
                 className="flex items-center gap-3 select-none"
@@ -54,13 +52,13 @@ export default function TopNav() {
               </Link>
 
               <nav className="hidden sm:flex items-center gap-3">
-                <Link href="/shipping" className={pillNeutral}>
+                <Link href="/shipping" className={pillFilled}>
                   Shipping
                 </Link>
-                <Link href="/order-help" className={pillNeutral}>
+                <Link href="/order-help" className={pillFilled}>
                   Order help
                 </Link>
-                <Link href="/orders" className={pillAccent}>
+                <Link href="/orders" className={pillFilled}>
                   My orders
                 </Link>
               </nav>
@@ -69,7 +67,7 @@ export default function TopNav() {
                 <button
                   type="button"
                   onClick={() => setOpen(true)}
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-900 shadow-sm transition active:scale-[0.99]"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#e7d3a0] bg-[#f6ebcb]/92 text-slate-900 shadow-[0_4px_10px_rgba(15,23,42,0.04)] transition active:scale-[0.99]"
                   aria-label="Open menu"
                   aria-expanded={open}
                 >
@@ -93,24 +91,24 @@ export default function TopNav() {
           type="button"
           onClick={() => setOpen(false)}
           className={`absolute inset-0 transition-opacity duration-200 ${
-            open ? "bg-black/40 opacity-100" : "bg-black/0 opacity-0"
+            open ? "bg-black/24 opacity-100" : "bg-black/0 opacity-0"
           }`}
           aria-label="Close menu"
         />
 
         <aside
-          className={`absolute right-0 top-0 h-full w-[86%] max-w-sm border-l border-slate-200 bg-white shadow-2xl transition-transform duration-200 ease-out ${
+          className={`absolute right-0 top-0 h-full w-[86%] max-w-sm border-l border-[#efe2bb] bg-[#fbf7ec] shadow-2xl transition-transform duration-200 ease-out ${
             open ? "translate-x-0" : "translate-x-full"
           }`}
           role="dialog"
           aria-modal="true"
         >
-          <div className="flex items-center justify-between border-b border-slate-200 p-4 pt-[max(1rem,env(safe-area-inset-top))]">
+          <div className="flex items-center justify-between border-b border-[#efe2bb] p-4 pt-[max(1rem,env(safe-area-inset-top))]">
             <p className="text-sm font-semibold text-slate-900">Menu</p>
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="rounded-full border border-slate-200 px-3 py-1.5 text-xs text-slate-700"
+              className="rounded-full border border-[#e7d3a0] bg-[#f6ebcb]/92 px-3 py-1.5 text-xs text-slate-700"
             >
               Close
             </button>
@@ -120,10 +118,10 @@ export default function TopNav() {
             <Link
               href="/shipping"
               onClick={() => setOpen(false)}
-              className={cardNeutral}
+              className={cardFilled}
             >
               <p className="text-sm font-medium text-slate-900">Shipping</p>
-              <p className="text-[11px] text-slate-500">
+              <p className="text-[11px] text-slate-600">
                 Delivery &amp; production
               </p>
             </Link>
@@ -131,10 +129,10 @@ export default function TopNav() {
             <Link
               href="/order-help"
               onClick={() => setOpen(false)}
-              className={cardNeutral}
+              className={cardFilled}
             >
               <p className="text-sm font-medium text-slate-900">Order help</p>
-              <p className="text-[11px] text-slate-500">
+              <p className="text-[11px] text-slate-600">
                 Support &amp; changes
               </p>
             </Link>
@@ -142,7 +140,7 @@ export default function TopNav() {
             <Link
               href="/orders"
               onClick={() => setOpen(false)}
-              className={cardAccent}
+              className={cardFilled}
             >
               <p className="text-sm font-medium text-slate-900">My orders</p>
               <p className="text-[11px] text-slate-600">Track &amp; manage</p>
