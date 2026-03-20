@@ -724,729 +724,708 @@ export default function HomeClient() {
   );
 
   return (
-    <main className="min-h-screen bg-[#f7f3ec] text-slate-900">
-      <div className="mx-auto w-full max-w-6xl px-4 py-8 md:py-12">
-        <TopNav />
+  <main className="relative min-h-screen overflow-hidden bg-[#f7f3ec] text-slate-900">
+    <div
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 opacity-[0.24]"
+      style={{
+        backgroundImage: 'url("/backdrop1.png")',
+        backgroundRepeat: "repeat",
+        backgroundSize: "760px",
+        backgroundPosition: "center top",
+      }}
+    />
 
-        <header className="mb-6 md:mb-8">
-          <div className="mx-auto max-w-4xl">
-            <div className="relative overflow-hidden rounded-[2rem] border border-slate-200 bg-white px-5 py-6 shadow-[0_18px_45px_rgba(15,23,42,0.05)] md:px-8 md:py-8">
-              <div
-                className="pointer-events-none absolute inset-0"
-                style={{
-                  backgroundImage: "url('/backdrop.png')",
-                  backgroundSize: "520px auto",
-                  backgroundPosition: "center",
-                  opacity: 0.08,
-                }}
-              />
-              <div className="relative text-center">
-                <div className="mb-3 inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[11px] font-medium text-amber-800 shadow-sm">
-                  Free UK shipping
-                </div>
+    <div
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 bg-[#f7f3ec]/76"
+    />
 
-                <h1 className="mx-auto max-w-3xl text-[2rem] font-semibold tracking-tight text-slate-900 leading-[1.05] md:text-5xl">
-                  Turn your pet into a bottle worth showing off.
-                </h1>
+    <div className="relative mx-auto w-full max-w-6xl px-4 py-8 md:py-12">
+      <TopNav />
 
-                <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-600 md:text-base md:leading-7">
-                  Upload a clear portrait photo, choose a vibe, and preview your
-                  personalised flask or gym bottle before you order.
-                </p>
-
-                <div className="mt-5">
-                  <button
-                    type="button"
-                    onClick={scrollToStep1}
-                    className="inline-flex items-center gap-2 rounded-full bg-amber-400 px-6 py-3 text-sm font-medium text-slate-900 shadow-[0_12px_24px_rgba(251,191,36,0.28)] transition hover:bg-amber-300"
-                  >
-                    <span>Start your design</span>
-                    <span className="text-[13px]">↓</span>
-                  </button>
-                </div>
-
-                <p className="mt-2.5 text-[11px] text-slate-500">
-                  Live preview before checkout
-                </p>
-
-                <div className="mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-[11px] text-slate-600">
-                  <span className="font-medium text-slate-900">From £19.99</span>
-                  <span className="hidden opacity-30 sm:inline">•</span>
-                  <span>Flask or gym bottle</span>
-                  <span className="hidden opacity-30 sm:inline">•</span>
-                  <span>Printed in the UK</span>
-                </div>
+      <header className="mb-6 md:mb-8">
+        <div className="mx-auto max-w-4xl">
+          <div className="relative overflow-hidden rounded-[2rem] border border-white/70 bg-white/88 px-5 py-6 shadow-[0_18px_45px_rgba(15,23,42,0.05)] backdrop-blur-sm md:px-8 md:py-8">
+            <div className="relative text-center">
+              <div className="mb-3 inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[11px] font-medium text-amber-800 shadow-sm">
+                Free UK shipping
               </div>
-            </div>
-          </div>
-        </header>
 
-        <section className="mb-5 md:mb-6">
-          <div className="relative overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-4 shadow-[0_18px_45px_rgba(15,23,42,0.05)] md:p-5">
-            <div
-              className="pointer-events-none absolute inset-0"
-              style={{
-                backgroundImage: "url('/backdrop.png')",
-                backgroundSize: "500px auto",
-                backgroundPosition: "center",
-                opacity: 0.05,
-              }}
-            />
+              <h1 className="mx-auto max-w-3xl text-[2rem] font-semibold leading-[1.02] tracking-tight text-slate-900 md:text-5xl">
+                Turn your pet into a bottle worth showing off.
+              </h1>
 
-            <div className="relative">
-              <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-                <div>
-                  <div className="mb-2 inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-medium text-slate-600">
-                    See example styles
-                  </div>
-                  <h2 className="text-xl font-semibold tracking-tight text-slate-900 md:text-2xl">
-                    Same pet, different vibes
-                  </h2>
-                  <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">
-                    Your pet stays recognisable — you just choose the style that
-                    fits best.
-                  </p>
-                </div>
+              <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-600 md:text-base md:leading-7">
+                Upload a clear portrait photo, choose a style, and preview your
+                personalised bottle before checkout.
+              </p>
 
+              <div className="mt-5">
                 <button
                   type="button"
-                  onClick={() => setShowExamples((v) => !v)}
-                  className="inline-flex self-start rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 md:hidden"
+                  onClick={scrollToStep1}
+                  className="inline-flex items-center gap-2 rounded-full bg-amber-400 px-6 py-3 text-sm font-medium text-slate-900 shadow-[0_12px_24px_rgba(251,191,36,0.28)] transition hover:bg-amber-300"
                 >
-                  {showExamples ? "Hide examples" : "Show examples"}
+                  <span>Start your design</span>
+                  <span className="text-[13px]">↓</span>
                 </button>
               </div>
 
-              <div className="mt-4 hidden md:block">{showcaseGrid}</div>
-
-              {showExamples && <div className="mt-4 md:hidden">{showcaseGrid}</div>}
-
-              <div className="mt-4 rounded-2xl border border-amber-100 bg-amber-50/70 px-4 py-3">
-                <p className="text-[12px] font-medium text-amber-900">
-                  Clear, front-facing photos usually create the strongest result.
-                </p>
-                <p className="mt-1 text-[11px] leading-5 text-slate-600">
-                  Think visible face, visible eyes, and the pet looking towards
-                  the camera rather than side-on.
-                </p>
+              <div className="mt-4 mx-auto flex max-w-xl flex-wrap items-center justify-center gap-2 rounded-2xl border border-amber-100 bg-amber-50/80 px-4 py-3 text-[12px] shadow-sm">
+                <span className="font-semibold text-slate-900">From £19.99</span>
+                <span className="text-slate-400">•</span>
+                <span className="text-slate-700">Choose flask or gym bottle</span>
+                <span className="text-slate-400">•</span>
+                <span className="text-slate-700">Printed in the UK</span>
               </div>
-            </div>
-          </div>
-        </section>
 
-        <section ref={step1Ref} className="mb-5">
-          <div className="rounded-[1.75rem] border border-slate-200 bg-gradient-to-b from-white to-[#fbfaf7] px-5 py-4 shadow-[0_18px_45px_rgba(15,23,42,0.05)] md:px-6">
-            <div className="text-center">
-              <div className="mb-2 inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[11px] font-medium text-amber-800">
-                Start your design
-              </div>
-              <h2 className="text-xl font-semibold tracking-tight text-slate-900 md:text-2xl">
-                Create your own live preview
-              </h2>
-              <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                Upload a clear, front-facing pet photo below to personalise your
-                bottle or flask.
+              <p className="mt-2.5 text-[11px] text-slate-500">
+                Live preview before checkout
               </p>
             </div>
-          </div>
-        </section>
-
-        <div className="mb-6 space-y-3">
-          <div className="flex flex-wrap items-center justify-center gap-4 text-[11px]">
-            <div className="flex items-center gap-2">
-              <span
-                className={`flex h-6 w-6 items-center justify-center rounded-full border text-xs ${
-                  step1Active || step2Active
-                    ? "border-amber-400 bg-amber-50 text-amber-700"
-                    : "border-slate-300 bg-white text-slate-400"
-                }`}
-              >
-                1
-              </span>
-              <span className={stepLabelClass(step1Active || step2Active)}>
-                Upload photo
-              </span>
-            </div>
-
-            <div className="hidden h-px w-6 bg-slate-300 sm:block" />
-
-            <div className="flex items-center gap-2">
-              <span
-                className={`flex h-6 w-6 items-center justify-center rounded-full border text-xs ${
-                  step2Active
-                    ? "border-amber-400 bg-amber-50 text-amber-700"
-                    : "border-slate-300 bg-white text-slate-400"
-                }`}
-              >
-                2
-              </span>
-              <span className={stepLabelClass(step2Active)}>Choose style</span>
-            </div>
-
-            <div className="hidden h-px w-6 bg-slate-300 sm:block" />
-
-            <div className="flex items-center gap-2">
-              <span
-                className={`flex h-6 w-6 items-center justify-center rounded-full border text-xs ${
-                  canGoToCheckout
-                    ? "border-amber-400 bg-amber-50 text-amber-700"
-                    : "border-slate-300 bg-white text-slate-400"
-                }`}
-              >
-                3
-              </span>
-              <span className={stepLabelClass(canGoToCheckout)}>Checkout</span>
-            </div>
-          </div>
-
-          <p className="text-center text-[11px] text-slate-500 sm:hidden">
-            Step{" "}
-            <span className="font-semibold text-slate-800">{overallStep}</span>{" "}
-            of 3
-          </p>
-
-          <div className="mx-auto h-1.5 w-full max-w-md overflow-hidden rounded-full border border-slate-200 bg-slate-200">
-            <div
-              className="h-full bg-gradient-to-r from-amber-300 via-amber-400 to-emerald-300 transition-all duration-300"
-              style={{ width: `${Math.max(4, Math.min(overallProgress, 100))}%` }}
-            />
           </div>
         </div>
+      </header>
 
-        <div className="grid items-start gap-8 md:grid-cols-[1.2fr,1fr]">
-          <section className="space-y-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_18px_45px_rgba(15,23,42,0.06)] md:p-6">
-            <div>
-              <div className="mb-3 inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[11px] font-medium text-amber-800">
-                Upload a portrait-style pet photo
-              </div>
-
-              <h2 className="mb-2 text-lg font-medium text-slate-900">
-                Step 1 · Upload your pet photo
-              </h2>
-
-              <p className="mb-3 text-[11px] text-slate-500">
-                Front-facing portraits work best. Choose a sharp photo with the
-                face clearly visible and the pet looking towards the camera.
-              </p>
-
-              <div className="space-y-3">
-                <h3 className="text-sm font-medium text-slate-900">
-                  Pick your favourite photo
-                </h3>
-
-                <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center transition hover:border-amber-400 hover:bg-amber-50/60">
-                  <span className="text-xs uppercase tracking-[0.16em] text-slate-500">
-                    Tap to upload
-                  </span>
-                  <span className="max-w-xs text-[11px] text-slate-500">
-                    Best results come from clear portrait-style photos — not
-                    side profiles or distant shots.
-                  </span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleFileChange}
-                  />
-                </label>
-
-                {previewUrl && (
-                  <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-3">
-                    <div className="h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
-                      <img
-                        src={previewUrl}
-                        alt="Selected photo preview"
-                        className="h-full w-full object-cover"
-                      />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[12px] font-medium text-slate-900">
-                        Photo selected ✓
-                      </p>
-                      <p className="text-[11px] text-slate-500">
-                        Next: run the quick photo check below.
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                <PhotoTipsAccordion />
-
-                {renderQualityMessage()}
-              </div>
-
-              <div className="mt-5 border-t border-slate-200 pt-5">
-                <h3 className="mb-2 text-sm font-medium text-slate-900">
-                  Step 2 · Quick photo check
-                </h3>
-
-                <button
-                  className="w-full rounded-xl bg-amber-400 px-4 py-3 text-sm font-medium text-slate-900 transition hover:bg-amber-300 disabled:opacity-60 disabled:hover:bg-amber-400"
-                  onClick={handleCheckQuality}
-                  disabled={!previewUrl || isChecking}
-                >
-                  {isChecking ? "Checking photo…" : "Check this photo"}
-                </button>
-
-                {isChecking && (
-                  <div className="mt-2">
-                    <div className="h-1 w-full overflow-hidden rounded-full bg-slate-200">
-                      <div className="h-full w-1/2 animate-pulse bg-amber-300/90" />
-                    </div>
-                    <p className="mt-1 text-center text-[11px] text-slate-500">
-                      Checking face, clarity, lighting and background…
-                    </p>
-                  </div>
-                )}
-
-                <p className="mt-2 text-center text-[11px] text-slate-500">
-                  This helps you get a stronger result before you generate.
+      <section className="mb-5 md:mb-6">
+        <div className="relative overflow-hidden rounded-[2rem] border border-white/70 bg-white/88 p-4 shadow-[0_18px_45px_rgba(15,23,42,0.05)] backdrop-blur-sm md:p-5">
+          <div className="relative">
+            <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+              <div>
+                <h2 className="text-xl font-semibold tracking-tight text-slate-900 md:text-2xl">
+                  Same pet, different vibes
+                </h2>
+                <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">
+                  Your pet stays recognisable — you just pick the style that fits best.
                 </p>
               </div>
-            </div>
-
-            <div className="border-t border-slate-200 pt-5">
-              <h2 className="text-lg font-medium text-slate-900">
-                Step 3 · Choose a style &amp; personalise your product
-              </h2>
-
-              {step1Active && (
-                <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-3">
-                  <p className="text-[12px] font-medium text-amber-900">
-                    Run the photo check above to unlock this step.
-                  </p>
-                  <p className="text-[11px] text-amber-800 opacity-90">
-                    Once it passes, you’ll be able to preview your selected style.
-                  </p>
-                </div>
-              )}
-
-              {!step1Active && (
-                <>
-                  {qualityResult?.status === "bad" && (
-                    <p className="mt-3 text-[11px] text-rose-600">
-                      This photo is unlikely to produce a good result. Try a
-                      clearer front-facing portrait.
-                    </p>
-                  )}
-
-                  <div className="mt-4 space-y-3">
-                    <h3 className="text-sm font-medium text-slate-900">
-                      Choose a vibe
-                    </h3>
-
-                    <div className="grid grid-cols-3 gap-3">
-                      <button
-                        type="button"
-                        onClick={() => handleStyleClick("gangster")}
-                        className={`rounded-lg border px-3 py-2 text-xs transition md:text-sm ${
-                          styleId === "gangster"
-                            ? "border-amber-400 bg-amber-50 text-amber-800 shadow-[0_0_0_1px_rgba(251,191,36,0.4)]"
-                            : "border-slate-200 bg-white hover:border-slate-400"
-                        }`}
-                      >
-                        <span className="block">Gangster</span>
-                        <span className="block text-[10px] text-slate-500">
-                          Gold chain, cool vibe
-                        </span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => handleStyleClick("disney")}
-                        className={`rounded-lg border px-3 py-2 text-xs transition md:text-sm ${
-                          styleId === "disney"
-                            ? "border-amber-400 bg-amber-50 text-amber-800 shadow-[0_0_0_1px_rgba(251,191,36,0.4)]"
-                            : "border-slate-200 bg-white hover:border-slate-400"
-                        }`}
-                      >
-                        <span className="block">Cartoon</span>
-                        <span className="block text-[10px] text-slate-500">
-                          Bright &amp; playful
-                        </span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => handleStyleClick("girlboss")}
-                        className={`rounded-lg border px-3 py-2 text-xs transition md:text-sm ${
-                          styleId === "girlboss"
-                            ? "border-amber-400 bg-amber-50 text-amber-800 shadow-[0_0_0_1px_rgba(251,191,36,0.4)]"
-                            : "border-slate-200 bg-white hover:border-slate-400"
-                        }`}
-                      >
-                        <span className="block">Girlboss</span>
-                        <span className="block text-[10px] text-slate-500">
-                          Lashes &amp; glam
-                        </span>
-                      </button>
-                    </div>
-
-                    <div className="space-y-2 pt-2">
-                      <h3 className="text-sm font-medium text-slate-900">
-                        Create your preview
-                      </h3>
-
-                      <button
-                        type="button"
-                        onClick={handleGenerateArt}
-                        disabled={disableGenerateButton}
-                        className={`w-full rounded-xl px-4 py-3 text-sm font-medium text-slate-900 transition disabled:opacity-60 ${
-                          isGenerating
-                            ? "bg-gradient-to-r from-amber-300 via-amber-400 to-amber-200 shadow-[0_0_25px_rgba(251,191,36,0.4)]"
-                            : "bg-amber-400 hover:bg-amber-300"
-                        }`}
-                      >
-                        {generateButtonLabel}
-                      </button>
-
-                      <p className="text-[11px] text-slate-500">
-                        Usually ready shortly — depending on your photo.
-                      </p>
-
-                      <p className="text-[11px] text-slate-500">
-                        Designs created:{" "}
-                        <span className="font-semibold">
-                          {generationCount}/{MAX_GENERATIONS_PER_PHOTO}
-                        </span>
-                        .
-                      </p>
-
-                      {isGenerating && (
-                        <div className="mt-3 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-                          <GenerationWheel
-                            step={genStep}
-                            styleLabel={styleId}
-                            runId={genRunId}
-                          />
-
-                          <div className="px-4 pb-4">
-                            <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
-                              <div
-                                className="h-full bg-gradient-to-r from-amber-300 via-amber-400 to-amber-200 transition-all duration-300"
-                                style={{
-                                  width: `${Math.max(
-                                    10,
-                                    Math.min(generateProgress, 100)
-                                  )}%`,
-                                }}
-                              />
-                            </div>
-                            <p className="mt-2 text-center text-[11px] text-slate-500">
-                              Please keep this tab open — we’re preparing your
-                              personalised preview.
-                            </p>
-                          </div>
-                        </div>
-                      )}
-
-                      <p className="mt-1 text-[11px] text-slate-500">
-                        We keep your pet’s unique face and markings and prepare
-                        a print-ready design for your selected product.
-                      </p>
-
-                      {artError && (
-                        <p className="text-[11px] text-rose-600">{artError}</p>
-                      )}
-
-                      {generatedArtUrl && !artError && (
-                        <p className="text-[11px] text-emerald-700">
-                          Preview ready ✓ — your bottle preview on the right is updated.
-                        </p>
-                      )}
-
-                      {isSavingArtwork && (
-                        <p className="text-[11px] text-slate-500">
-                          Saving your design…
-                        </p>
-                      )}
-
-                      {saveArtworkError && (
-                        <p className="text-[11px] text-rose-600">
-                          {saveArtworkError}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          </section>
-
-          <section className="flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_18px_45px_rgba(15,23,42,0.06)] md:p-6">
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <h2 className="text-sm font-medium text-slate-900">
-                Live PurePaw preview
-              </h2>
-
-              <div className="inline-flex rounded-full border border-slate-200 bg-slate-50 p-1">
-                <button
-                  type="button"
-                  onClick={() => setPreviewProduct("flask")}
-                  className={`rounded-full px-3 py-1 text-[11px] font-medium transition ${
-                    previewProduct === "flask"
-                      ? "border border-slate-200 bg-white text-slate-900 shadow-sm"
-                      : "text-slate-500 hover:text-slate-800"
-                  }`}
-                >
-                  Flask
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPreviewProduct("gym")}
-                  className={`rounded-full px-3 py-1 text-[11px] font-medium transition ${
-                    previewProduct === "gym"
-                      ? "border border-slate-200 bg-white text-slate-900 shadow-sm"
-                      : "text-slate-500 hover:text-slate-800"
-                  }`}
-                >
-                  Gym bottle
-                </button>
-              </div>
-            </div>
-
-            {previewProduct === "flask" ? (
-              <MugPreview
-                imageUrl={flaskPreview}
-                hasGeneratedArt={!!generatedArtUrl}
-                styleId={effectiveStyleForPreview}
-              />
-            ) : (
-              <GymBottlePreview
-                imageUrl={flaskPreview}
-                hasGeneratedArt={!!generatedArtUrl}
-                styleId={effectiveStyleForPreview}
-              />
-            )}
-
-            <p className="mt-4 text-[11px] text-slate-500">
-              Selected vibe:{" "}
-              <span className="font-medium capitalize text-slate-900">
-                {effectiveStyleForPreview === "disney"
-                  ? "Cartoon"
-                  : effectiveStyleForPreview}
-              </span>
-            </p>
-
-            {generatedArtUrl ? (
-              <>
-                <p className="mt-1 text-[11px] text-amber-700">
-                  This is the design that will be printed on your{" "}
-                  {previewProduct === "gym" ? "gym bottle" : "flask"}.
-                </p>
-
-                <div className="mt-3 rounded-xl border border-amber-100 bg-amber-50/70 px-3 py-3">
-                  <p className="text-[11px] font-medium text-amber-900">
-                    Preview guidance
-                  </p>
-                  <p className="mt-1 text-[10px] leading-5 text-slate-600">
-                    Your preview is a close guide to the final product. We may
-                    slightly refine sizing or placement during print prep so it
-                    looks its best on your bottle.
-                  </p>
-                  <ul className="mt-2 space-y-1 text-[10px] leading-5 text-slate-600">
-                    <li>
-                      • Clear front-facing photos usually give the strongest result
-                    </li>
-                    <li>
-                      • If your photo is strong but the preview feels off,
-                      trying another variation is encouraged
-                    </li>
-                    <li>
-                      • You have a limited number of design tries per photo
-                    </li>
-                  </ul>
-                  <p className="mt-2 text-[10px] leading-5 text-slate-500">
-                    Small print-position refinements are handled for you before
-                    production.
-                  </p>
-                </div>
-              </>
-            ) : (
-              <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
-                <p className="text-[11px] font-medium text-slate-900">
-                  Create your design to see it live here.
-                </p>
-                <p className="mt-1 text-[10px] leading-5 text-slate-500">
-                  You’ll be able to preview your final flask or gym bottle
-                  before checkout.
-                </p>
-              </div>
-            )}
-
-            {designs.length > 1 && (
-              <div className="mt-5 border-t border-slate-200 pt-4">
-                <h3 className="mb-1 text-xs font-medium text-slate-900">
-                  Your created designs
-                </h3>
-                <p className="mb-2 text-[11px] text-slate-500">
-                  Tap a design to preview it and use it for checkout.
-                </p>
-
-                <div className="flex gap-2 overflow-x-auto pb-1">
-                  {designs.map((design, index) => {
-                    const isActive = index === activeDesignIndex;
-                    return (
-                      <button
-                        key={design.id}
-                        type="button"
-                        onClick={() => {
-                          setActiveDesignIndex(index);
-                          setSliderValue(50);
-                          setArtworkId(design.artworkId ?? null);
-                        }}
-                        className={`relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-xl border bg-white ${
-                          isActive
-                            ? "border-amber-400 ring-2 ring-amber-400/50"
-                            : "border-slate-200 hover:border-slate-400"
-                        }`}
-                      >
-                        <img
-                          src={design.imageUrl}
-                          alt={`Generated design ${index + 1}`}
-                          className="h-full w-full object-contain"
-                        />
-                        <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-black/40 px-1 py-[2px]">
-                          <span className="text-[9px] text-slate-50">
-                            #{index + 1}
-                          </span>
-                          {isActive && (
-                            <span className="text-[9px] text-amber-200">
-                              Selected
-                            </span>
-                          )}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            <div className="mt-6 border-t border-slate-200 pt-4">
-              <h3 className="mb-2 text-xs font-medium text-slate-900">
-                Your photo
-              </h3>
-
-              <div className="flex items-start gap-3">
-                {sourcePreview ? (
-                  <div className="relative h-28 w-28 flex-shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
-                    <img
-                      src={sourcePreview}
-                      alt="Original pet photo preview"
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
-                ) : (
-                  <p className="text-[11px] text-slate-500">
-                    Upload a photo to see it here.
-                  </p>
-                )}
-
-                <p className="text-[11px] text-slate-500">
-                  We use your photo as the reference, keep the face and
-                  markings, and apply the style you choose.
-                </p>
-              </div>
-            </div>
-
-            {sourcePreview && generatedArtUrl && (
-              <div className="mt-6 border-t border-slate-200 pt-4">
-                <h3 className="mb-2 text-xs font-medium text-slate-900">
-                  Before / after (preview)
-                </h3>
-
-                <div
-                  className="max-w-sm select-none"
-                  onContextMenu={(e) => e.preventDefault()}
-                >
-                  <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
-                    <img
-                      src={sourcePreview}
-                      alt="Before"
-                      className="pointer-events-none absolute inset-0 h-full w-full select-none object-cover"
-                    />
-
-                    <div
-                      className="pointer-events-none absolute inset-0 overflow-hidden"
-                      style={{ width: `${sliderValue}%` }}
-                    >
-                      <img
-                        src={generatedArtUrl}
-                        alt="After"
-                        className="h-full w-full select-none bg-slate-900 object-contain pointer-events-none"
-                      />
-                    </div>
-
-                    <div
-                      className="pointer-events-none absolute inset-y-0 flex items-center justify-center"
-                      style={{ left: `calc(${sliderValue}% - 1px)` }}
-                    >
-                      <div className="h-full w-0.5 bg-white/90 shadow-[0_0_6px_rgba(15,23,42,0.45)]" />
-                    </div>
-
-                    <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                      <span className="rounded-full bg-black/55 px-4 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/90 backdrop-blur md:text-xs">
-                        Preview only
-                      </span>
-                    </div>
-                  </div>
-
-                  <input
-                    type="range"
-                    min={0}
-                    max={100}
-                    value={sliderValue}
-                    onChange={(e) => setSliderValue(Number(e.target.value) || 0)}
-                    className="mt-3 w-full cursor-pointer accent-amber-400"
-                  />
-
-                  <p className="mt-1 text-[11px] text-slate-500">
-                    Drag to compare your photo with the styled portrait.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            <div className="mt-6 border-t border-slate-200 pt-4">
-              <div className="mb-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-3">
-                <p className="text-[11px] font-medium text-emerald-900">
-                  Free UK shipping included
-                </p>
-                <p className="mt-1 text-[10px] leading-5 text-emerald-800">
-                  When you’re happy with your preview, continue to secure
-                  checkout and we’ll handle the rest.
-                </p>
-              </div>
-
-              <h3 className="mb-2 text-xs font-medium text-slate-900">
-                Step 3 · Checkout
-              </h3>
-
-              <p className="mb-3 text-[11px] text-slate-500">
-                When you’re happy with your preview, continue to secure checkout.
-              </p>
 
               <button
                 type="button"
-                disabled={!canGoToCheckout}
-                onClick={handleGoToCheckout}
-                className="w-full rounded-lg bg-slate-900 py-2.5 text-xs font-medium text-white transition hover:bg-slate-800 disabled:opacity-60"
+                onClick={() => setShowExamples((v) => !v)}
+                className="inline-flex self-start rounded-full border border-amber-200 bg-amber-50 px-4 py-2 text-[12px] font-medium text-amber-900 shadow-sm transition hover:border-amber-300 hover:bg-amber-100 md:hidden"
               >
-                {canGoToCheckout
-                  ? "Continue to checkout"
-                  : "Create a saved design first"}
+                {showExamples ? "Hide examples" : "Show examples"}
               </button>
+            </div>
 
-              <p className="mt-3 text-center text-[10px] text-slate-500">
-                Powered by{" "}
-                <span className="font-semibold text-slate-800">Stripe</span> ·
-                Encrypted checkout
+            <div className="mt-4 hidden md:block">{showcaseGrid}</div>
+
+            {showExamples && <div className="mt-4 md:hidden">{showcaseGrid}</div>}
+
+            <div className="mt-4 rounded-2xl border border-amber-100 bg-amber-50/75 px-4 py-3">
+              <p className="text-[12px] font-medium text-amber-900">
+                Clear, front-facing photos usually create the strongest result.
+              </p>
+              <p className="mt-1 text-[11px] leading-5 text-slate-600">
+                Think visible face, visible eyes, and your pet looking towards the
+                camera rather than side-on.
               </p>
             </div>
-          </section>
+          </div>
+        </div>
+      </section>
+
+      <section ref={step1Ref} className="mb-5">
+        <div className="rounded-[1.75rem] border border-white/70 bg-white/88 px-5 py-4 shadow-[0_18px_45px_rgba(15,23,42,0.05)] backdrop-blur-sm md:px-6">
+          <div className="text-center">
+            <div className="mb-2 inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[11px] font-medium text-amber-800">
+              Start your design
+            </div>
+            <h2 className="text-xl font-semibold tracking-tight text-slate-900 md:text-2xl">
+              Create your live bottle preview
+            </h2>
+            <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+              Upload a clear, front-facing pet photo to personalise your flask or gym bottle.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <div className="mb-6 space-y-3">
+        <div className="flex flex-wrap items-center justify-center gap-4 text-[11px]">
+          <div className="flex items-center gap-2">
+            <span
+              className={`flex h-6 w-6 items-center justify-center rounded-full border text-xs ${
+                step1Active || step2Active
+                  ? "border-amber-400 bg-amber-50 text-amber-700"
+                  : "border-slate-300 bg-white text-slate-400"
+              }`}
+            >
+              1
+            </span>
+            <span className={stepLabelClass(step1Active || step2Active)}>
+              Upload photo
+            </span>
+          </div>
+
+          <div className="hidden h-px w-6 bg-slate-300 sm:block" />
+
+          <div className="flex items-center gap-2">
+            <span
+              className={`flex h-6 w-6 items-center justify-center rounded-full border text-xs ${
+                step2Active
+                  ? "border-amber-400 bg-amber-50 text-amber-700"
+                  : "border-slate-300 bg-white text-slate-400"
+              }`}
+            >
+              2
+            </span>
+            <span className={stepLabelClass(step2Active)}>Choose style</span>
+          </div>
+
+          <div className="hidden h-px w-6 bg-slate-300 sm:block" />
+
+          <div className="flex items-center gap-2">
+            <span
+              className={`flex h-6 w-6 items-center justify-center rounded-full border text-xs ${
+                canGoToCheckout
+                  ? "border-amber-400 bg-amber-50 text-amber-700"
+                  : "border-slate-300 bg-white text-slate-400"
+              }`}
+            >
+              3
+            </span>
+            <span className={stepLabelClass(canGoToCheckout)}>Checkout</span>
+          </div>
+        </div>
+
+        <p className="text-center text-[11px] text-slate-500 sm:hidden">
+          Step{" "}
+          <span className="font-semibold text-slate-800">{overallStep}</span> of 3
+        </p>
+
+        <div className="mx-auto h-1.5 w-full max-w-md overflow-hidden rounded-full border border-slate-200 bg-slate-200">
+          <div
+            className="h-full bg-gradient-to-r from-amber-300 via-amber-400 to-emerald-300 transition-all duration-300"
+            style={{ width: `${Math.max(4, Math.min(overallProgress, 100))}%` }}
+          />
         </div>
       </div>
-    </main>
-  );
+
+      <div className="grid items-start gap-8 md:grid-cols-[1.2fr,1fr]">
+        <section className="space-y-6 rounded-2xl border border-white/70 bg-white/90 p-5 shadow-[0_18px_45px_rgba(15,23,42,0.06)] backdrop-blur-sm md:p-6">
+          <div>
+            <div className="mb-3 inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[11px] font-medium text-amber-800">
+              Upload a portrait-style pet photo
+            </div>
+
+            <h2 className="mb-2 text-lg font-medium text-slate-900">
+              Step 1 · Upload your pet photo
+            </h2>
+
+            <p className="mb-3 text-[11px] text-slate-500">
+              Front-facing portraits work best. Choose a sharp photo with the face
+              clearly visible and your pet looking towards the camera.
+            </p>
+
+            <div className="space-y-3">
+              <h3 className="text-sm font-medium text-slate-900">
+                Pick your favourite photo
+              </h3>
+
+              <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center transition hover:border-amber-400 hover:bg-amber-50/60">
+                <span className="text-xs uppercase tracking-[0.16em] text-slate-500">
+                  Tap to upload
+                </span>
+                <span className="max-w-xs text-[11px] text-slate-500">
+                  Best results come from clear portrait-style photos — not side
+                  profiles or distant shots.
+                </span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+              </label>
+
+              {previewUrl && (
+                <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-3">
+                  <div className="h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+                    <img
+                      src={previewUrl}
+                      alt="Selected photo preview"
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[12px] font-medium text-slate-900">
+                      Photo selected ✓
+                    </p>
+                    <p className="text-[11px] text-slate-500">
+                      Next: run the quick photo check below.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <PhotoTipsAccordion />
+
+              {renderQualityMessage()}
+            </div>
+
+            <div className="mt-5 border-t border-slate-200 pt-5">
+              <h3 className="mb-2 text-sm font-medium text-slate-900">
+                Step 2 · Quick photo check
+              </h3>
+
+              <button
+                className="w-full rounded-xl bg-amber-400 px-4 py-3 text-sm font-medium text-slate-900 transition hover:bg-amber-300 disabled:opacity-60 disabled:hover:bg-amber-400"
+                onClick={handleCheckQuality}
+                disabled={!previewUrl || isChecking}
+              >
+                {isChecking ? "Checking photo…" : "Check this photo"}
+              </button>
+
+              {isChecking && (
+                <div className="mt-2">
+                  <div className="h-1 w-full overflow-hidden rounded-full bg-slate-200">
+                    <div className="h-full w-1/2 animate-pulse bg-amber-300/90" />
+                  </div>
+                  <p className="mt-1 text-center text-[11px] text-slate-500">
+                    Checking face, clarity, lighting and background…
+                  </p>
+                </div>
+              )}
+
+              <p className="mt-2 text-center text-[11px] text-slate-500">
+                This helps you get a stronger result before you generate.
+              </p>
+            </div>
+          </div>
+
+          <div className="border-t border-slate-200 pt-5">
+            <h2 className="text-lg font-medium text-slate-900">
+              Step 3 · Choose a style &amp; personalise your product
+            </h2>
+
+            {step1Active && (
+              <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-3">
+                <p className="text-[12px] font-medium text-amber-900">
+                  Run the photo check above to unlock this step.
+                </p>
+                <p className="text-[11px] text-amber-800 opacity-90">
+                  Once it passes, you’ll be able to preview your selected style.
+                </p>
+              </div>
+            )}
+
+            {!step1Active && (
+              <>
+                {qualityResult?.status === "bad" && (
+                  <p className="mt-3 text-[11px] text-rose-600">
+                    This photo is unlikely to produce a good result. Try a clearer
+                    front-facing portrait.
+                  </p>
+                )}
+
+                <div className="mt-4 space-y-3">
+                  <h3 className="text-sm font-medium text-slate-900">
+                    Choose a vibe
+                  </h3>
+
+                  <div className="grid grid-cols-3 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => handleStyleClick("gangster")}
+                      className={`rounded-lg border px-3 py-2 text-xs transition md:text-sm ${
+                        styleId === "gangster"
+                          ? "border-amber-400 bg-amber-50 text-amber-800 shadow-[0_0_0_1px_rgba(251,191,36,0.4)]"
+                          : "border-slate-200 bg-white hover:border-slate-400"
+                      }`}
+                    >
+                      <span className="block">Gangster</span>
+                      <span className="block text-[10px] text-slate-500">
+                        Gold chain, cool vibe
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleStyleClick("disney")}
+                      className={`rounded-lg border px-3 py-2 text-xs transition md:text-sm ${
+                        styleId === "disney"
+                          ? "border-amber-400 bg-amber-50 text-amber-800 shadow-[0_0_0_1px_rgba(251,191,36,0.4)]"
+                          : "border-slate-200 bg-white hover:border-slate-400"
+                      }`}
+                    >
+                      <span className="block">Cartoon</span>
+                      <span className="block text-[10px] text-slate-500">
+                        Bright &amp; playful
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleStyleClick("girlboss")}
+                      className={`rounded-lg border px-3 py-2 text-xs transition md:text-sm ${
+                        styleId === "girlboss"
+                          ? "border-amber-400 bg-amber-50 text-amber-800 shadow-[0_0_0_1px_rgba(251,191,36,0.4)]"
+                          : "border-slate-200 bg-white hover:border-slate-400"
+                      }`}
+                    >
+                      <span className="block">Girlboss</span>
+                      <span className="block text-[10px] text-slate-500">
+                        Lashes &amp; glam
+                      </span>
+                    </button>
+                  </div>
+
+                  <div className="space-y-2 pt-2">
+                    <h3 className="text-sm font-medium text-slate-900">
+                      Create your preview
+                    </h3>
+
+                    <button
+                      type="button"
+                      onClick={handleGenerateArt}
+                      disabled={disableGenerateButton}
+                      className={`w-full rounded-xl px-4 py-3 text-sm font-medium text-slate-900 transition disabled:opacity-60 ${
+                        isGenerating
+                          ? "bg-gradient-to-r from-amber-300 via-amber-400 to-amber-200 shadow-[0_0_25px_rgba(251,191,36,0.4)]"
+                          : "bg-amber-400 hover:bg-amber-300"
+                      }`}
+                    >
+                      {generateButtonLabel}
+                    </button>
+
+                    <p className="text-[11px] text-slate-500">
+                      Usually ready shortly — depending on your photo.
+                    </p>
+
+                    <p className="text-[11px] text-slate-500">
+                      Designs created:{" "}
+                      <span className="font-semibold">
+                        {generationCount}/{MAX_GENERATIONS_PER_PHOTO}
+                      </span>
+                      .
+                    </p>
+
+                    {isGenerating && (
+                      <div className="mt-3 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                        <GenerationWheel
+                          step={genStep}
+                          styleLabel={styleId}
+                          runId={genRunId}
+                        />
+
+                        <div className="px-4 pb-4">
+                          <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
+                            <div
+                              className="h-full bg-gradient-to-r from-amber-300 via-amber-400 to-amber-200 transition-all duration-300"
+                              style={{
+                                width: `${Math.max(
+                                  10,
+                                  Math.min(generateProgress, 100)
+                                )}%`,
+                              }}
+                            />
+                          </div>
+                          <p className="mt-2 text-center text-[11px] text-slate-500">
+                            Please keep this tab open — we’re preparing your
+                            personalised preview.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    <p className="mt-1 text-[11px] text-slate-500">
+                      We keep your pet’s unique face and markings and prepare a
+                      print-ready design for your selected product.
+                    </p>
+
+                    {artError && (
+                      <p className="text-[11px] text-rose-600">{artError}</p>
+                    )}
+
+                    {generatedArtUrl && !artError && (
+                      <p className="text-[11px] text-emerald-700">
+                        Preview ready ✓ — your bottle preview on the right is updated.
+                      </p>
+                    )}
+
+                    {isSavingArtwork && (
+                      <p className="text-[11px] text-slate-500">
+                        Saving your design…
+                      </p>
+                    )}
+
+                    {saveArtworkError && (
+                      <p className="text-[11px] text-rose-600">
+                        {saveArtworkError}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </section>
+
+        <section className="flex flex-col rounded-2xl border border-white/70 bg-white/90 p-5 shadow-[0_18px_45px_rgba(15,23,42,0.06)] backdrop-blur-sm md:p-6">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h2 className="text-sm font-medium text-slate-900">
+              Live PurePaw preview
+            </h2>
+
+            <div className="inline-flex rounded-full border border-slate-200 bg-slate-50 p-1">
+              <button
+                type="button"
+                onClick={() => setPreviewProduct("flask")}
+                className={`rounded-full px-3 py-1 text-[11px] font-medium transition ${
+                  previewProduct === "flask"
+                    ? "border border-slate-200 bg-white text-slate-900 shadow-sm"
+                    : "text-slate-500 hover:text-slate-800"
+                }`}
+              >
+                Flask
+              </button>
+              <button
+                type="button"
+                onClick={() => setPreviewProduct("gym")}
+                className={`rounded-full px-3 py-1 text-[11px] font-medium transition ${
+                  previewProduct === "gym"
+                    ? "border border-slate-200 bg-white text-slate-900 shadow-sm"
+                    : "text-slate-500 hover:text-slate-800"
+                }`}
+              >
+                Gym bottle
+              </button>
+            </div>
+          </div>
+
+          {previewProduct === "flask" ? (
+            <MugPreview
+              imageUrl={flaskPreview}
+              hasGeneratedArt={!!generatedArtUrl}
+              styleId={effectiveStyleForPreview}
+            />
+          ) : (
+            <GymBottlePreview
+              imageUrl={flaskPreview}
+              hasGeneratedArt={!!generatedArtUrl}
+              styleId={effectiveStyleForPreview}
+            />
+          )}
+
+          <p className="mt-4 text-[11px] text-slate-500">
+            Selected vibe:{" "}
+            <span className="font-medium capitalize text-slate-900">
+              {effectiveStyleForPreview === "disney"
+                ? "Cartoon"
+                : effectiveStyleForPreview}
+            </span>
+          </p>
+
+          {generatedArtUrl ? (
+            <>
+              <p className="mt-1 text-[11px] text-amber-700">
+                This is the design that will be printed on your{" "}
+                {previewProduct === "gym" ? "gym bottle" : "flask"}.
+              </p>
+
+              <div className="mt-3 rounded-xl border border-amber-100 bg-amber-50/70 px-3 py-3">
+                <p className="text-[11px] font-medium text-amber-900">
+                  Preview guidance
+                </p>
+                <p className="mt-1 text-[10px] leading-5 text-slate-600">
+                  Your preview is a close guide to the final product. We may
+                  slightly refine sizing or placement during print prep so it
+                  looks its best on your bottle.
+                </p>
+                <ul className="mt-2 space-y-1 text-[10px] leading-5 text-slate-600">
+                  <li>• Clear front-facing photos usually give the strongest result</li>
+                  <li>
+                    • If your photo is strong but the preview feels off, trying
+                    another variation is encouraged
+                  </li>
+                  <li>• You have a limited number of design tries per photo</li>
+                </ul>
+                <p className="mt-2 text-[10px] leading-5 text-slate-500">
+                  Small print-position refinements are handled for you before production.
+                </p>
+              </div>
+            </>
+          ) : (
+            <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
+              <p className="text-[11px] font-medium text-slate-900">
+                Create your design to see it live here.
+              </p>
+              <p className="mt-1 text-[10px] leading-5 text-slate-500">
+                You’ll be able to preview your final flask or gym bottle before checkout.
+              </p>
+            </div>
+          )}
+
+          {designs.length > 1 && (
+            <div className="mt-5 border-t border-slate-200 pt-4">
+              <h3 className="mb-1 text-xs font-medium text-slate-900">
+                Your created designs
+              </h3>
+              <p className="mb-2 text-[11px] text-slate-500">
+                Tap a design to preview it and use it for checkout.
+              </p>
+
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {designs.map((design, index) => {
+                  const isActive = index === activeDesignIndex;
+                  return (
+                    <button
+                      key={design.id}
+                      type="button"
+                      onClick={() => {
+                        setActiveDesignIndex(index);
+                        setSliderValue(50);
+                        setArtworkId(design.artworkId ?? null);
+                      }}
+                      className={`relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-xl border bg-white ${
+                        isActive
+                          ? "border-amber-400 ring-2 ring-amber-400/50"
+                          : "border-slate-200 hover:border-slate-400"
+                      }`}
+                    >
+                      <img
+                        src={design.imageUrl}
+                        alt={`Generated design ${index + 1}`}
+                        className="h-full w-full object-contain"
+                      />
+                      <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-black/40 px-1 py-[2px]">
+                        <span className="text-[9px] text-slate-50">#{index + 1}</span>
+                        {isActive && (
+                          <span className="text-[9px] text-amber-200">Selected</span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <div className="mt-6 border-t border-slate-200 pt-4">
+            <h3 className="mb-2 text-xs font-medium text-slate-900">Your photo</h3>
+
+            <div className="flex items-start gap-3">
+              {sourcePreview ? (
+                <div className="relative h-28 w-28 flex-shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+                  <img
+                    src={sourcePreview}
+                    alt="Original pet photo preview"
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+              ) : (
+                <p className="text-[11px] text-slate-500">
+                  Upload a photo to see it here.
+                </p>
+              )}
+
+              <p className="text-[11px] text-slate-500">
+                We use your photo as the reference, keep the face and markings,
+                and apply the style you choose.
+              </p>
+            </div>
+          </div>
+
+          {sourcePreview && generatedArtUrl && (
+            <div className="mt-6 border-t border-slate-200 pt-4">
+              <h3 className="mb-2 text-xs font-medium text-slate-900">
+                Before / after (preview)
+              </h3>
+
+              <div
+                className="max-w-sm select-none"
+                onContextMenu={(e) => e.preventDefault()}
+              >
+                <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+                  <img
+                    src={sourcePreview}
+                    alt="Before"
+                    className="pointer-events-none absolute inset-0 h-full w-full select-none object-cover"
+                  />
+
+                  <div
+                    className="pointer-events-none absolute inset-0 overflow-hidden"
+                    style={{ width: `${sliderValue}%` }}
+                  >
+                    <img
+                      src={generatedArtUrl}
+                      alt="After"
+                      className="pointer-events-none h-full w-full select-none bg-slate-900 object-contain"
+                    />
+                  </div>
+
+                  <div
+                    className="pointer-events-none absolute inset-y-0 flex items-center justify-center"
+                    style={{ left: `calc(${sliderValue}% - 1px)` }}
+                  >
+                    <div className="h-full w-0.5 bg-white/90 shadow-[0_0_6px_rgba(15,23,42,0.45)]" />
+                  </div>
+
+                  <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                    <span className="rounded-full bg-black/55 px-4 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/90 backdrop-blur md:text-xs">
+                      Preview only
+                    </span>
+                  </div>
+                </div>
+
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={sliderValue}
+                  onChange={(e) => setSliderValue(Number(e.target.value) || 0)}
+                  className="mt-3 w-full cursor-pointer accent-amber-400"
+                />
+
+                <p className="mt-1 text-[11px] text-slate-500">
+                  Drag to compare your photo with the styled portrait.
+                </p>
+              </div>
+            </div>
+          )}
+
+          <div className="mt-6 border-t border-slate-200 pt-4">
+            <div className="mb-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-3">
+              <p className="text-[11px] font-medium text-emerald-900">
+                Free UK shipping included
+              </p>
+              <p className="mt-1 text-[10px] leading-5 text-emerald-800">
+                When you’re happy with your preview, continue to secure checkout
+                and we’ll handle the rest.
+              </p>
+            </div>
+
+            <h3 className="mb-2 text-xs font-medium text-slate-900">
+              Step 3 · Checkout
+            </h3>
+
+            <p className="mb-3 text-[11px] text-slate-500">
+              When you’re happy with your preview, continue to secure checkout.
+            </p>
+
+            <button
+              type="button"
+              disabled={!canGoToCheckout}
+              onClick={handleGoToCheckout}
+              className="w-full rounded-lg bg-slate-900 py-2.5 text-xs font-medium text-white transition hover:bg-slate-800 disabled:opacity-60"
+            >
+              {canGoToCheckout
+                ? "Continue to checkout"
+                : "Create a saved design first"}
+            </button>
+
+            <p className="mt-3 text-center text-[10px] text-slate-500">
+              Powered by{" "}
+              <span className="font-semibold text-slate-800">Stripe</span> ·
+              Encrypted checkout
+            </p>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+);
 }
