@@ -28,7 +28,7 @@ const PRODUCT_LABELS: Record<ProductType, string> = {
 
 const PRODUCT_PRICES: Record<ProductType, number> = {
   flask: 19.99,
-  gym_bottle: 24.99,
+  gym_bottle: 19.99,
 };
 
 function CheckoutContent() {
@@ -177,19 +177,25 @@ function CheckoutContent() {
   }
 
   return (
-    <main
-      className="min-h-screen text-slate-900"
-      style={{
-        backgroundColor: "#f7f3ec",
-        backgroundImage:
-          'linear-gradient(rgba(247,243,236,0.9), rgba(247,243,236,0.94)), url("/backdrop.png")',
-        backgroundRepeat: "no-repeat, repeat",
-        backgroundSize: "cover, 820px",
-        backgroundPosition: "center, center",
-      }}
-    >
+    <main className="relative min-h-screen overflow-hidden bg-[#f7f3ec] text-slate-900">
       <div
-        className="w-full max-w-5xl mx-auto px-4 py-8 md:py-12"
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 opacity-[0.22]"
+        style={{
+          backgroundImage: 'url("/backdrop1.png")',
+          backgroundRepeat: "repeat",
+          backgroundSize: "720px",
+          backgroundPosition: "center top",
+        }}
+      />
+
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 bg-[#f7f3ec]/78"
+      />
+
+      <div
+        className="relative w-full max-w-5xl mx-auto px-4 py-8 md:py-12"
         style={{ colorScheme: "light" }}
       >
         <button
@@ -205,15 +211,10 @@ function CheckoutContent() {
             PurePaw Secure Checkout
           </p>
 
-          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-slate-950 mb-3">
+          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-slate-950">
             Complete your order
             <span className="block text-slate-700">and secure your bottle</span>
           </h1>
-
-          <p className="max-w-2xl text-sm md:text-base leading-7 text-slate-700">
-            Confirm your delivery details below and continue to our secure Stripe
-            checkout to complete your PurePaw order.
-          </p>
         </header>
 
         {!hasArtwork && (
@@ -415,13 +416,13 @@ function CheckoutContent() {
                 </div>
 
                 <div className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-700">
-                  Made to order
+                  Personalised for you
                 </div>
               </div>
 
               <div>
                 <p className="text-[12px] uppercase tracking-[0.18em] text-slate-500">
-                  Style
+                  Bottle style
                 </p>
                 <p className="text-sm font-medium capitalize text-slate-900">
                   {styleId === "disney" ? "Disney" : styleId || "Selected bottle"}
