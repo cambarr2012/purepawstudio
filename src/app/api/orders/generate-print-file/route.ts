@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import sharp from "sharp";
 import QRCode from "qrcode";
-import { CANVAS_SIZE, getArtRect } from "@/lib/printLayout";
+import { CANVAS_SIZE } from "@/lib/printLayout";
 import { dataUrlToBuffer } from "@/lib/imageUtils";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
@@ -14,7 +14,7 @@ export async function GET() {
     ok: true,
     route: "/api/orders/generate-print-file",
     methods: ["POST"],
-    version: "v7-print-matte-keyout-sanitize-rgb",
+    version: "v8-print-match-artwork-normalisation",
   });
 }
 
@@ -40,14 +40,13 @@ function resolveBaseUrl(req: NextRequest) {
   return (
     process.env.NEXT_PUBLIC_APP_URL ||
     process.env.NEXT_PUBLIC_SITE_URL ||
-    process.env.NEXT_PUBLIC_SITE_URL ||
     req.nextUrl.origin
   );
 }
 
 /**
  * Detect + remove opaque black matte backgrounds.
- * (Same fix as generate-art.)
+ * Same general fix as generate-art.
  */
 async function removeBlackBoxBackgroundIfNeeded(inputPng: Buffer): Promise<Buffer> {
   const { data, info } = await sharp(inputPng)
@@ -59,15 +58,15 @@ async function removeBlackBoxBackgroundIfNeeded(inputPng: Buffer): Promise<Buffe
   const h = info.height;
   const stride = 4;
 
-  const sampleSize = 8;
+  const sampleSize = Math.min(8, w, h);
   const corners: Array<[number, number]> = [
     [0, 0],
-    [w - sampleSize, 0],
-    [0, h - sampleSize],
-    [w - sampleSize, h - sampleSize],
+    [Math.max(0, w - sampleSize), 0],
+    [0, Math.max(0, h - sampleSize)],
+    [Math.max(0, w - sampleSize), Math.max(0, h - sampleSize)],
   ];
 
-  let cornerCount = 0;
+  let pixelCount = 0;
   let sumA = 0;
   let sumRGB = 0;
 
@@ -81,21 +80,20 @@ async function removeBlackBoxBackgroundIfNeeded(inputPng: Buffer): Promise<Buffe
         const a = data[i + 3];
         sumA += a;
         sumRGB += r + g + b;
-        cornerCount++;
+        pixelCount++;
       }
     }
   }
 
-  const avgA = sumA / cornerCount;
-  const avgRGB = sumRGB / (cornerCount * 3);
+  const avgA = sumA / pixelCount;
+  const avgRGB = sumRGB / (pixelCount * 3);
 
   const looksLikeBlackBox = avgA > 245 && avgRGB < 25;
   if (!looksLikeBlackBox) return inputPng;
 
+  const out = Buffer.from(data);
   const hardCut = 18;
   const softCut = 70;
-
-  const out = Buffer.from(data);
 
   for (let i = 0; i < out.length; i += 4) {
     const r = out[i];
@@ -115,14 +113,16 @@ async function removeBlackBoxBackgroundIfNeeded(inputPng: Buffer): Promise<Buffe
     }
   }
 
-  return sharp(out, { raw: { width: w, height: h, channels: 4 } })
+  return sharp(out, {
+    raw: { width: w, height: h, channels: 4 },
+  })
     .png()
     .toBuffer();
 }
 
 /**
- * Important for print: remove “hidden RGB” in fully transparent pixels.
- * This prevents halos and weird edge artifacts when resizing.
+ * Important for print: remove hidden RGB in fully transparent pixels.
+ * This helps prevent edge halos when resizing/compositing.
  */
 async function sanitizeTransparentRgb(inputPng: Buffer): Promise<Buffer> {
   const { data, info } = await sharp(inputPng)
@@ -141,17 +141,77 @@ async function sanitizeTransparentRgb(inputPng: Buffer): Promise<Buffer> {
     }
   }
 
-  return sharp(out, { raw: { width: info.width, height: info.height, channels: 4 } })
+  return sharp(out, {
+    raw: { width: info.width, height: info.height, channels: 4 },
+  })
+    .png()
+    .toBuffer();
+}
+
+/**
+ * Match the artwork composition logic rather than squeezing the art
+ * into the legacy print-area rectangle.
+ *
+ * This makes the paid print file visually match the artwork PNG that
+ * already looks correct when dropped into the supplier.
+ */
+async function normaliseArtworkToPrintCanvas(
+  inputPng: Buffer,
+  opts?: { canvasSize?: number; innerScale?: number; verticalBias?: number }
+): Promise<Buffer> {
+  const canvasSize = opts?.canvasSize ?? CANVAS_SIZE;
+  const innerScale = Math.min(0.95, Math.max(0.72, opts?.innerScale ?? 0.84));
+  const verticalBias = Math.min(0.15, Math.max(-0.15, opts?.verticalBias ?? -0.04));
+
+  const trimmed = await sharp(inputPng)
+    .ensureAlpha()
+    .trim({ threshold: 10 })
+    .png()
+    .toBuffer();
+
+  const meta = await sharp(trimmed).metadata();
+  const srcW = meta.width ?? canvasSize;
+  const srcH = meta.height ?? canvasSize;
+
+  const maxDim = Math.max(srcW, srcH);
+  const scale = (canvasSize * innerScale) / maxDim;
+
+  const targetW = Math.max(1, Math.round(srcW * scale));
+  const targetH = Math.max(1, Math.round(srcH * scale));
+
+  const fitted = await sharp(trimmed)
+    .resize({
+      width: targetW,
+      height: targetH,
+      fit: "fill",
+    })
+    .png()
+    .toBuffer();
+
+  const left = Math.round((canvasSize - targetW) / 2);
+  const centeredTop = Math.round((canvasSize - targetH) / 2);
+  const biasedTop = Math.round(centeredTop + canvasSize * verticalBias);
+  const top = Math.max(0, Math.min(canvasSize - targetH, biasedTop));
+
+  return sharp({
+    create: {
+      width: canvasSize,
+      height: canvasSize,
+      channels: 4,
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    },
+  })
+    .composite([{ input: fitted, left, top }])
     .png()
     .toBuffer();
 }
 
 export async function POST(req: NextRequest) {
-  console.log("🔥 [generate-print-file] VERSION=v7 (MATTE KEYOUT + SANITIZE RGB)");
+  console.log("🔥 [generate-print-file] VERSION=v8 (MATCH ARTWORK NORMALISATION)");
 
   try {
     const body = (await req.json()) as GenerateOrderPrintFileBody;
-    const { orderId, artworkId, artworkUrl, styleId } = body ?? ({} as any);
+    const { orderId, artworkId, artworkUrl, styleId } = body ?? ({} as GenerateOrderPrintFileBody);
 
     if (!artworkId || !artworkUrl) {
       return NextResponse.json(
@@ -169,11 +229,9 @@ export async function POST(req: NextRequest) {
     }
 
     const styleKey = normaliseStyle(styleId);
-
     const encodedArtworkUrl = encodeURIComponent(artworkUrl);
     const encodedStyle = encodeURIComponent(styleKey);
     const qrTargetUrl = `${baseUrl}/p?img=${encodedArtworkUrl}&s=${encodedStyle}`;
-
     const fileId = orderId ?? artworkId;
 
     console.log("[generate-print-file] Inputs:", {
@@ -186,7 +244,7 @@ export async function POST(req: NextRequest) {
       qrTargetUrl,
     });
 
-    // 1) Fetch the artwork image (this should already be PNG w/ alpha)
+    // 1) Fetch the artwork image
     const artRes = await fetch(artworkUrl);
     if (!artRes.ok) {
       console.error(
@@ -199,41 +257,21 @@ export async function POST(req: NextRequest) {
         { status: 500 }
       );
     }
+
     const artBuffer = Buffer.from(await artRes.arrayBuffer());
 
-    // ✅ 1b) Fix black matte backgrounds (old gens + occasional model outputs)
+    // 2) Clean it for print
     const matteCleaned = await removeBlackBoxBackgroundIfNeeded(artBuffer);
-
-    // ✅ 1c) Ensure transparent pixels don’t carry junk RGB (prevents halos on resize)
     const cleanedForPrint = await sanitizeTransparentRgb(matteCleaned);
 
-    // 2) Build ART-ONLY print file
-    const artRect = getArtRect();
+    // 3) Build print file using the same visual composition logic as artwork output
+    const finalPrintBuffer = await normaliseArtworkToPrintCanvas(cleanedForPrint, {
+      canvasSize: CANVAS_SIZE,
+      innerScale: 0.84,
+      verticalBias: -0.04,
+    });
 
-    const resizedArt = await sharp(cleanedForPrint)
-      .ensureAlpha()
-      .resize({
-        width: artRect.width,
-        height: artRect.height,
-        fit: "contain",
-        background: { r: 0, g: 0, b: 0, alpha: 0 },
-      })
-      .png()
-      .toBuffer();
-
-    const finalPrintBuffer = await sharp({
-      create: {
-        width: CANVAS_SIZE,
-        height: CANVAS_SIZE,
-        channels: 4,
-        background: { r: 0, g: 0, b: 0, alpha: 0 },
-      },
-    })
-      .composite([{ input: resizedArt, left: artRect.left, top: artRect.top }])
-      .png()
-      .toBuffer();
-
-    // 3) Upload print file
+    // 4) Upload print file
     const printObjectPath = `print-files/${fileId}.png`;
 
     const { error: uploadPrintError } = await supabaseAdmin.storage
@@ -263,7 +301,7 @@ export async function POST(req: NextRequest) {
       printFileUrl,
     });
 
-    // 4) Generate QR (separate asset)
+    // 5) Generate QR
     const qrDataUrl = await QRCode.toDataURL(qrTargetUrl, {
       width: 1200,
       margin: 1,
@@ -272,9 +310,10 @@ export async function POST(req: NextRequest) {
         light: "#ffffffff",
       },
     });
-    const qrBuffer = dataUrlToBuffer(qrDataUrl);
 
+    const qrBuffer = dataUrlToBuffer(qrDataUrl);
     const qrObjectPath = `qrs/${fileId}.png`;
+
     const { error: uploadQrError } = await supabaseAdmin.storage
       .from("artworks")
       .upload(qrObjectPath, qrBuffer, {
@@ -284,14 +323,14 @@ export async function POST(req: NextRequest) {
 
     if (uploadQrError) {
       console.error("[generate-print-file] Upload QR error:", uploadQrError);
-      // Don't fail the whole request — print file is critical.
+      // Do not fail whole request if QR upload fails.
     }
 
     const {
       data: { publicUrl: qrUrl },
     } = supabaseAdmin.storage.from("artworks").getPublicUrl(qrObjectPath);
 
-    // 5) Persist URLs to orders row (requires orderId)
+    // 6) Persist order fields
     let dbMatchedOrder: boolean | null = null;
 
     if (orderId) {
@@ -316,10 +355,7 @@ export async function POST(req: NextRequest) {
           .limit(1);
 
         if (verifyError) {
-          console.error(
-            "[generate-print-file] Orders verify error:",
-            verifyError
-          );
+          console.error("[generate-print-file] Orders verify error:", verifyError);
           dbMatchedOrder = null;
         } else {
           dbMatchedOrder = (verifyData?.length ?? 0) > 0;
@@ -334,7 +370,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         ok: true,
-        version: "v7-print-matte-keyout-sanitize-rgb",
+        version: "v8-print-match-artwork-normalisation",
         orderId: orderId ?? null,
         artworkId,
         artworkUrl,
@@ -343,7 +379,10 @@ export async function POST(req: NextRequest) {
         qrUrl,
         qrTargetUrl,
         canvasSize: CANVAS_SIZE,
-        artRect,
+        normalisedWith: {
+          innerScale: 0.84,
+          verticalBias: -0.04,
+        },
         dbMatchedOrder,
       },
       { status: 200 }
