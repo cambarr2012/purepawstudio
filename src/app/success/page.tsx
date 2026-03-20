@@ -12,8 +12,17 @@ export default function SuccessPage({ searchParams }: SuccessPageProps) {
   const hasSession = Boolean(searchParams?.session_id);
 
   return (
-    <main className="min-h-screen bg-[#f7f3ed] px-4 py-8 text-slate-900 sm:px-6 sm:py-12">
-      <div className="mx-auto max-w-4xl">
+    <main className="relative min-h-screen overflow-hidden bg-[#f7f3ed] px-4 py-8 text-slate-900 sm:px-6 sm:py-12">
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 bg-[url('/backdrop1.png')] bg-repeat opacity-[0.14]"
+      />
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 bg-[#f7f3ed]/88"
+      />
+
+      <div className="relative z-10 mx-auto max-w-4xl">
         <div className="mb-4 flex justify-center">
           <div className="overflow-hidden rounded-[20px] border border-stone-200 bg-[#efe7d7] shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
             <Image
@@ -33,7 +42,7 @@ export default function SuccessPage({ searchParams }: SuccessPageProps) {
           </div>
         </div>
 
-        <section className="overflow-hidden rounded-[28px] border border-stone-200 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:rounded-[32px]">
+        <section className="overflow-hidden rounded-[28px] border border-stone-200/80 bg-white/92 shadow-[0_20px_60px_rgba(15,23,42,0.06)] backdrop-blur-[2px] sm:rounded-[32px]">
           <div className="bg-gradient-to-b from-[#fcf8f2] to-white px-6 pb-8 pt-8 sm:px-10 sm:pb-10 sm:pt-10">
             <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 shadow-[0_8px_24px_rgba(16,185,129,0.10)]">
               <svg
@@ -68,7 +77,7 @@ export default function SuccessPage({ searchParams }: SuccessPageProps) {
 
           <div className="border-t border-stone-100 px-6 py-8 sm:px-10 sm:py-10">
             <div className="grid gap-4 sm:grid-cols-3 sm:gap-5">
-              <div className="rounded-[22px] border border-stone-200 bg-stone-50 p-5 sm:p-6">
+              <div className="rounded-[22px] border border-stone-200 bg-stone-50/90 p-5 sm:p-6">
                 <div className="mb-4 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-sm font-semibold text-slate-900 border border-stone-200">
                   1
                 </div>
@@ -81,7 +90,7 @@ export default function SuccessPage({ searchParams }: SuccessPageProps) {
                 </p>
               </div>
 
-              <div className="rounded-[22px] border border-stone-200 bg-stone-50 p-5 sm:p-6">
+              <div className="rounded-[22px] border border-stone-200 bg-stone-50/90 p-5 sm:p-6">
                 <div className="mb-4 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-sm font-semibold text-slate-900 border border-stone-200">
                   2
                 </div>
@@ -94,7 +103,7 @@ export default function SuccessPage({ searchParams }: SuccessPageProps) {
                 </p>
               </div>
 
-              <div className="rounded-[22px] border border-stone-200 bg-stone-50 p-5 sm:p-6">
+              <div className="rounded-[22px] border border-stone-200 bg-stone-50/90 p-5 sm:p-6">
                 <div className="mb-4 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-sm font-semibold text-slate-900 border border-stone-200">
                   3
                 </div>
@@ -108,7 +117,7 @@ export default function SuccessPage({ searchParams }: SuccessPageProps) {
               </div>
             </div>
 
-            <div className="mt-8 rounded-[24px] border border-stone-200 bg-[#faf7f2] p-5 sm:p-6">
+            <div className="mt-8 rounded-[24px] border border-stone-200 bg-[#faf7f2]/92 p-5 sm:p-6">
               <h2 className="text-base font-semibold text-slate-900">
                 What happens next
               </h2>

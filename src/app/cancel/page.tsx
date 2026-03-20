@@ -2,8 +2,17 @@ import Link from "next/link";
 
 export default function CancelPage() {
   return (
-    <main className="min-h-screen bg-[#f7f3ec] text-slate-900 flex items-center justify-center px-4 py-10">
-      <div className="w-full max-w-lg">
+    <main className="relative min-h-screen overflow-hidden bg-[#f7f3ec] text-slate-900 flex items-center justify-center px-4 py-10">
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 bg-[url('/backdrop1.png')] bg-repeat opacity-[0.14]"
+      />
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 bg-[#f7f3ec]/88"
+      />
+
+      <div className="relative z-10 w-full max-w-lg">
         <div className="text-center mb-8">
           <p className="mb-3 inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.28em] text-amber-700 shadow-sm">
             PurePaw Checkout
@@ -19,8 +28,8 @@ export default function CancelPage() {
           </p>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-4">
+        <div className="bg-white/92 border border-slate-200/80 rounded-2xl p-6 shadow-sm backdrop-blur-[2px]">
+          <div className="rounded-xl border border-slate-200 bg-slate-50/90 px-4 py-4">
             <h2 className="text-base font-semibold text-slate-900 mb-2">
               What you can do next
             </h2>
@@ -52,7 +61,7 @@ export default function CancelPage() {
           </Link>
           <Link
             href="/order-help"
-            className="rounded-full border border-slate-300 px-5 py-2.5 text-slate-900 font-medium hover:bg-[#f9f4ed] transition"
+            className="rounded-full border border-slate-300 bg-white/90 px-5 py-2.5 text-slate-900 font-medium hover:bg-[#f9f4ed] transition"
           >
             Order help
           </Link>

@@ -1,12 +1,34 @@
 "use client";
 
+import { useState, FormEvent } from "react";
 import Link from "next/link";
 
-export default function OrderHelpClient() {
+export default function OrdersPage() {
+  const [lookupValue, setLookupValue] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    setSubmitting(true);
+    setMessage(
+      "Thanks — live order lookup is being finalised. For now, please check your confirmation email or contact support with your order ID or checkout email and we’ll send you an update."
+    );
+    setTimeout(() => setSubmitting(false), 500);
+  }
+
   return (
-    <main className="min-h-screen bg-[#f7f3ec] text-slate-900">
-      <div className="w-full max-w-3xl mx-auto px-4 py-10 md:py-12">
-        {/* Top bar */}
+    <main className="relative min-h-screen overflow-hidden bg-[#f7f3ec] text-slate-900">
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 bg-[url('/backdrop1.png')] bg-repeat opacity-[0.14]"
+      />
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 bg-[#f7f3ec]/88"
+      />
+
+      <div className="relative z-10 w-full max-w-3xl mx-auto px-4 py-10 md:py-12">
         <div className="mb-6 flex items-center justify-between">
           <button
             onClick={() => history.back()}
@@ -23,108 +45,117 @@ export default function OrderHelpClient() {
           </Link>
         </div>
 
-        {/* Header */}
         <header className="mb-8">
           <p className="mb-3 inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.28em] text-amber-700 shadow-sm">
-            PurePaw Order Support
+            PurePaw Order Tracking
           </p>
 
           <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-slate-950 mb-3">
-            Help with your order
-            <span className="block text-slate-700">updates, changes and support</span>
+            Order updates
+            <span className="block text-slate-700">tracking and support</span>
           </h1>
 
           <p className="max-w-2xl text-sm md:text-base leading-7 text-slate-700">
-            Need a hand with an order? Whether you are waiting on tracking,
-            need to update delivery details, or your order has arrived with an
-            issue, this page outlines the quickest way to get support from
-            PurePaw Studio.
+            We’ll keep you updated as your PurePaw Studio order moves through
+            production and dispatch. Tracking details are added once your order
+            has been shipped.
           </p>
         </header>
 
         <section className="space-y-5 text-sm">
-          {/* Common questions */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-5 shadow-sm backdrop-blur-[2px]">
             <h2 className="text-lg font-semibold mb-2 text-slate-900">
-              Common order questions
+              What to expect
             </h2>
-            <ul className="space-y-3 text-[14px] leading-7 text-slate-700">
-              <li>
-                • <span className="font-semibold text-slate-900">Where is my order?</span>{" "}
-                Check your confirmation email first. Tracking is sent once your
-                order has been dispatched, and you can also visit{" "}
+            <div className="space-y-3 text-[14px] leading-7 text-slate-700">
+              <p>
+                After checkout, you should receive an order confirmation by
+                email.
+              </p>
+              <p>
+                Once your order has been dispatched, we’ll send your tracking
+                details by email.
+              </p>
+              <p>
+                Production and delivery times can vary slightly depending on the
+                product and destination, so our{" "}
                 <Link
-                  href="/orders"
+                  href="/shipping"
                   className="font-medium text-amber-700 hover:text-amber-600 underline-offset-2 hover:underline"
                 >
-                  My orders
+                  shipping page
                 </Link>{" "}
-                for the latest guidance.
-              </li>
-              <li>
-                • <span className="font-semibold text-slate-900">Can I change my delivery details?</span>{" "}
-                If your order has not moved too far into production, we can
-                often help with address corrections or delivery detail updates.
-                Contact us as soon as possible.
-              </li>
-              <li>
-                • <span className="font-semibold text-slate-900">My order arrived damaged or there is a problem with it.</span>{" "}
-                Send us a clear photo, your order ID if you have it, and a short
-                explanation of the issue. We will review it quickly and work
-                with you on the best next step.
-              </li>
-            </ul>
+                is the best place to check current timelines.
+              </p>
+            </div>
           </div>
 
-          {/* How to contact */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-5 shadow-sm backdrop-blur-[2px]">
             <h2 className="text-lg font-semibold mb-2 text-slate-900">
-              The fastest way to contact us
+              Request an order update
             </h2>
             <p className="text-[14px] leading-7 text-slate-700 mb-3">
-              We currently handle support by email so we can keep everything
-              clear, personal and easy to follow.
+              Enter your order ID or the email used at checkout and we’ll point
+              you in the right direction while live order lookup is being
+              completed.
             </p>
-            <p className="text-[14px] leading-7 text-slate-700">
-              Email{" "}
+
+            <form onSubmit={handleSubmit} className="space-y-3 text-[11px]">
+              <label className="flex flex-col gap-1">
+                <span className="text-slate-800">
+                  Order ID or checkout email
+                </span>
+                <input
+                  type="text"
+                  value={lookupValue}
+                  onChange={(e) => setLookupValue(e.target.value)}
+                  className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-amber-400"
+                  placeholder="Paste your order ID or email"
+                  disabled={submitting}
+                />
+              </label>
+              <button
+                type="submit"
+                disabled={submitting || !lookupValue}
+                className="mt-2 w-full rounded-lg bg-slate-900 text-slate-50 text-sm font-medium py-2.5 disabled:opacity-60 hover:bg-slate-800 transition"
+              >
+                {submitting ? "Checking…" : "Request an update"}
+              </button>
+            </form>
+
+            {message && (
+              <p className="mt-3 text-[12px] leading-6 text-slate-600">
+                {message}
+              </p>
+            )}
+          </div>
+
+          <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-5 shadow-sm backdrop-blur-[2px]">
+            <h2 className="text-lg font-semibold mb-2 text-slate-900">
+              Helpful order information
+            </h2>
+            <ul className="space-y-2 text-[14px] leading-7 text-slate-700">
+              <li>• Keep your order confirmation email handy</li>
+              <li>• Check your inbox and junk folder for shipping updates</li>
+              <li>• Tracking is sent once your order has been dispatched</li>
+              <li>
+                • For delivery timelines, visit our{" "}
+                <Link
+                  href="/shipping"
+                  className="font-medium text-amber-700 hover:text-amber-600 underline-offset-2 hover:underline"
+                >
+                  shipping page
+                </Link>
+              </li>
+            </ul>
+
+            <p className="mt-4 text-[13px] leading-6 text-slate-600">
+              Need help? Email{" "}
               <span className="font-mono text-[13px] text-amber-700">
                 support@purepawstudio.com
               </span>{" "}
-              and include:
-            </p>
-            <ul className="mt-3 space-y-2 text-[14px] leading-7 text-slate-700">
-              <li>• Your full name</li>
-              <li>• The email used at checkout</li>
-              <li>• Your order ID, if available</li>
-              <li>• A short summary of the help you need</li>
-              <li>• Photos, if your order arrived damaged or incorrect</li>
-            </ul>
-            <p className="mt-3 text-[12px] leading-6 text-slate-500">
-              We aim to reply within{" "}
-              <span className="font-semibold text-slate-800">1–2 working days</span>.
-            </p>
-          </div>
-
-          {/* Order updates */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 className="text-lg font-semibold mb-2 text-slate-900">
-              Order updates and tracking
-            </h2>
-            <p className="text-[14px] leading-7 text-slate-700">
-              Once your order has been dispatched, tracking details are sent by
-              email. If you need an update before then, the quickest route is to
-              contact us with your order details or reply directly to your order
-              confirmation email.
-            </p>
-            <p className="mt-3 text-[12px] leading-6 text-slate-500">
-              For expected production and delivery timeframes, visit our{" "}
-              <Link
-                href="/shipping"
-                className="font-medium text-amber-700 hover:text-amber-600 underline-offset-2 hover:underline"
-              >
-                shipping page
-              </Link>
-              .
+              with your order ID or checkout email and we’ll get back to you as
+              soon as possible.
             </p>
           </div>
         </section>

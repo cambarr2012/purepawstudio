@@ -4,8 +4,17 @@ import Link from "next/link";
 
 export default function ShippingClient() {
   return (
-    <main className="min-h-screen bg-[#f7f3ec] text-slate-900">
-      <div className="w-full max-w-3xl mx-auto px-4 py-10 md:py-12">
+    <main className="relative min-h-screen overflow-hidden bg-[#f7f3ec] text-slate-900">
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 bg-[url('/backdrop1.png')] bg-repeat opacity-[0.14]"
+      />
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 bg-[#f7f3ec]/88"
+      />
+
+      <div className="relative z-10 w-full max-w-3xl mx-auto px-4 py-10 md:py-12">
         {/* Top bar */}
         <div className="mb-6 flex items-center justify-between">
           <button
@@ -42,8 +51,7 @@ export default function ShippingClient() {
         </header>
 
         <section className="space-y-5 text-sm">
-          {/* Production time */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-5 shadow-sm backdrop-blur-[2px]">
             <h2 className="text-lg font-semibold mb-2 text-slate-900">
               Production time
             </h2>
@@ -61,8 +69,7 @@ export default function ShippingClient() {
             </p>
           </div>
 
-          {/* UK shipping */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-5 shadow-sm backdrop-blur-[2px]">
             <h2 className="text-lg font-semibold mb-2 text-slate-900">
               UK shipping
             </h2>
@@ -83,8 +90,7 @@ export default function ShippingClient() {
             </p>
           </div>
 
-          {/* International */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-5 shadow-sm backdrop-blur-[2px]">
             <h2 className="text-lg font-semibold mb-2 text-slate-900">
               International shipping
             </h2>
@@ -103,8 +109,7 @@ export default function ShippingClient() {
             </p>
           </div>
 
-          {/* Delays / issues */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-5 shadow-sm backdrop-blur-[2px]">
             <h2 className="text-lg font-semibold mb-2 text-slate-900">
               Delays, issues &amp; damaged items
             </h2>
