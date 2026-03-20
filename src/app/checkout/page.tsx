@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState, useEffect, FormEvent, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 
@@ -23,6 +24,11 @@ type ProductType = "flask" | "gym_bottle";
 const PRODUCT_LABELS: Record<ProductType, string> = {
   flask: "PurePaw Flask",
   gym_bottle: "PurePaw Gym Bottle",
+};
+
+const PRODUCT_PRICES: Record<ProductType, number> = {
+  flask: 19.99,
+  gym_bottle: 24.99,
 };
 
 function CheckoutContent() {
@@ -60,6 +66,8 @@ function CheckoutContent() {
 
   const hasArtwork = !!artworkId;
   const productLabel = PRODUCT_LABELS[productType];
+  const productPrice = PRODUCT_PRICES[productType] ?? 19.99;
+  const formattedPrice = `£${productPrice.toFixed(2)}`;
 
   const inputBase =
     "w-full rounded-md border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 px-3 py-2 text-sm outline-none " +
@@ -72,7 +80,7 @@ function CheckoutContent() {
 
     if (!artworkId) {
       setOrderError(
-        "No design found. Please return to the studio and create your design first."
+        "No bottle selected. Please return to the studio and create your bottle first."
       );
       return;
     }
@@ -169,9 +177,19 @@ function CheckoutContent() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f7f3ec] text-slate-900">
+    <main
+      className="min-h-screen text-slate-900"
+      style={{
+        backgroundColor: "#f7f3ec",
+        backgroundImage:
+          'linear-gradient(rgba(247,243,236,0.9), rgba(247,243,236,0.94)), url("/backdrop.png")',
+        backgroundRepeat: "no-repeat, repeat",
+        backgroundSize: "cover, 820px",
+        backgroundPosition: "center, center",
+      }}
+    >
       <div
-        className="w-full max-w-4xl mx-auto px-4 py-10 md:py-12"
+        className="w-full max-w-5xl mx-auto px-4 py-8 md:py-12"
         style={{ colorScheme: "light" }}
       >
         <button
@@ -183,13 +201,13 @@ function CheckoutContent() {
         </button>
 
         <header className="mb-8">
-          <p className="mb-3 inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.28em] text-amber-700 shadow-sm">
+          <p className="mb-3 inline-flex items-center rounded-full border border-amber-200 bg-amber-50/95 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.28em] text-amber-700 shadow-sm">
             PurePaw Secure Checkout
           </p>
 
           <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-slate-950 mb-3">
             Complete your order
-            <span className="block text-slate-700">and secure your design</span>
+            <span className="block text-slate-700">and secure your bottle</span>
           </h1>
 
           <p className="max-w-2xl text-sm md:text-base leading-7 text-slate-700">
@@ -200,15 +218,38 @@ function CheckoutContent() {
 
         {!hasArtwork && (
           <div className="mb-5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3">
-            <p className="text-sm font-medium text-rose-800">No design selected</p>
+            <p className="text-sm font-medium text-rose-800">No bottle selected</p>
             <p className="text-[12px] text-rose-700">
-              Please return to the studio and create a design before checking out.
+              Please return to the studio and create your bottle before checking out.
             </p>
           </div>
         )}
 
-        <div className="grid gap-6 md:grid-cols-[1.1fr,0.9fr]">
-          <section className="bg-white border border-slate-200 rounded-2xl p-5 md:p-6 shadow-sm">
+        <div className="grid gap-6 md:grid-cols-[1.08fr,0.92fr]">
+          <section className="rounded-[1.4rem] border border-white/70 bg-white/90 p-5 shadow-[0_10px_30px_rgba(15,23,42,0.07)] backdrop-blur-sm md:p-6">
+            <div className="mb-5 rounded-2xl border border-amber-100 bg-gradient-to-r from-amber-50 via-white to-amber-50/80 p-4">
+              <div className="flex items-center gap-4">
+                <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full border border-white shadow-sm md:h-20 md:w-20">
+                  <Image
+                    src="/puppydog.png"
+                    alt="Cute puppy"
+                    fill
+                    className="object-cover"
+                    sizes="80px"
+                    priority
+                  />
+                </div>
+
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-slate-900">Nearly there</p>
+                  <p className="mt-1 text-[13px] leading-6 text-slate-600">
+                    Fill in your details below to continue to secure payment. Look
+                    out for the extra bonus we send in your email after your order.
+                  </p>
+                </div>
+              </div>
+            </div>
+
             <div className="mb-5">
               <h2 className="text-lg font-semibold text-slate-900 mb-2">
                 Delivery details
@@ -281,7 +322,7 @@ function CheckoutContent() {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="flex flex-col gap-1">
                     <label className="text-[12px] font-medium text-slate-800">
                       City <span className="text-rose-600">*</span>
@@ -332,7 +373,7 @@ function CheckoutContent() {
               <button
                 type="submit"
                 disabled={!hasArtwork || isSubmittingOrder}
-                className="mt-2 w-full rounded-xl bg-slate-900 text-slate-50 text-sm font-medium py-3 disabled:opacity-60 hover:bg-slate-800 transition"
+                className="mt-2 w-full rounded-xl bg-slate-900 py-3 text-sm font-medium text-slate-50 transition hover:bg-slate-800 disabled:opacity-60"
               >
                 {isSubmittingOrder
                   ? "Redirecting to secure payment…"
@@ -343,26 +384,26 @@ function CheckoutContent() {
                 <p className="mt-2 text-[12px] text-rose-600">{orderError}</p>
               )}
 
-              <p className="mt-2 text-[11px] text-slate-500 text-center">
+              <p className="mt-2 text-center text-[11px] text-slate-500">
                 Powered by{" "}
                 <span className="font-semibold text-slate-800">Stripe</span> ·
                 Encrypted checkout
               </p>
 
               {orderId && (
-                <p className="text-[11px] text-slate-500 text-center">
+                <p className="text-center text-[11px] text-slate-500">
                   Order created: <span className="font-mono">{orderId}</span>
                 </p>
               )}
             </form>
           </section>
 
-          <aside className="bg-white border border-slate-200 rounded-2xl p-5 md:p-6 shadow-sm h-fit">
+          <aside className="h-fit rounded-[1.4rem] border border-white/70 bg-white/92 p-5 shadow-[0_10px_30px_rgba(15,23,42,0.07)] backdrop-blur-sm md:p-6">
             <h2 className="text-lg font-semibold text-slate-900 mb-3">
               Order summary
             </h2>
 
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 space-y-3">
+            <div className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50/95 px-4 py-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-[12px] uppercase tracking-[0.18em] text-slate-500">
@@ -372,6 +413,7 @@ function CheckoutContent() {
                     {productLabel}
                   </p>
                 </div>
+
                 <div className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-700">
                   Made to order
                 </div>
@@ -381,15 +423,36 @@ function CheckoutContent() {
                 <p className="text-[12px] uppercase tracking-[0.18em] text-slate-500">
                   Style
                 </p>
-                <p className="text-sm font-medium text-slate-900 capitalize">
-                  {styleId === "disney" ? "Disney" : styleId || "Selected design"}
+                <p className="text-sm font-medium capitalize text-slate-900">
+                  {styleId === "disney" ? "Disney" : styleId || "Selected bottle"}
                 </p>
               </div>
 
-              <div className="border-t border-slate-200 pt-3">
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-700">
+                  Included
+                </p>
+                <p className="mt-1 text-[13px] text-emerald-900">
+                  Free UK shipping on your order
+                </p>
+              </div>
+
+              <div className="border-t border-slate-200 pt-3 space-y-2">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-600">Price</span>
-                  <span className="font-semibold text-slate-900">£19.99</span>
+                  <span className="text-slate-600">Product</span>
+                  <span className="font-medium text-slate-900">{formattedPrice}</span>
+                </div>
+
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-slate-600">Shipping</span>
+                  <span className="font-medium text-emerald-700">Free</span>
+                </div>
+
+                <div className="flex items-center justify-between border-t border-slate-200 pt-2 text-sm">
+                  <span className="font-semibold text-slate-900">Total</span>
+                  <span className="text-base font-semibold text-slate-950">
+                    {formattedPrice}
+                  </span>
                 </div>
               </div>
             </div>
@@ -401,12 +464,12 @@ function CheckoutContent() {
                 </p>
                 <ul className="mt-2 space-y-2 text-[12px] leading-6 text-slate-600">
                   <li>• Your order is confirmed after secure payment</li>
-                  <li>• Your design is prepared for production</li>
+                  <li>• Your bottle is prepared for production</li>
                   <li>• Tracking is sent by email once dispatched</li>
                 </ul>
               </div>
 
-              <div className="rounded-xl border border-amber-100 bg-amber-50/70 px-4 py-3">
+              <div className="rounded-xl border border-amber-100 bg-amber-50/80 px-4 py-3">
                 <p className="text-[12px] font-medium text-amber-900">
                   Before you pay
                 </p>
