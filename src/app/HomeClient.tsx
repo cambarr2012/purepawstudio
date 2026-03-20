@@ -790,40 +790,54 @@ export default function HomeClient() {
   </div>
 </header>
 
-      <section className="mb-5 md:mb-6">
-        <div className="overflow-hidden rounded-[2rem] border border-white/70 bg-[#f8f3e8]/88 p-4 shadow-[0_18px_45px_rgba(15,23,42,0.05)] backdrop-blur-sm md:p-5">
-          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-            <div>
-              <h2 className="text-[1.7rem] font-semibold tracking-tight text-slate-950 md:text-[2rem]">
-                Same pet, different vibes
-              </h2>
-              <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600 md:text-[15px]">
-                Your pet stays recognisable — you just pick the style that fits best.
-              </p>
-            </div>
+   <section className="mb-5 md:mb-6">
+  <div className="overflow-hidden rounded-[2rem] border border-white/70 bg-[#f8f3e8]/88 p-4 shadow-[0_18px_45px_rgba(15,23,42,0.05)] backdrop-blur-sm md:p-5">
+    <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+      <div>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-800">
+          Style preview
+        </p>
 
-            <button
-              type="button"
-              onClick={() => setShowExamples((v) => !v)}
-              className="inline-flex self-start rounded-full border border-amber-200/90 bg-[#fbf4e8] px-4 py-2 text-[12px] font-medium text-amber-900 transition hover:border-amber-300 hover:bg-amber-50 md:hidden"
+        <h2 className="mt-2 text-[1.7rem] font-semibold tracking-tight text-slate-950 md:text-[2rem]">
+          Same pet, different vibes
+        </h2>
+
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600 md:text-[15px]">
+          Preview how your pet can look in each of our signature styles.
+        </p>
+
+        <div className="mt-3 flex flex-wrap gap-2">
+          {["Gangster", "Cartoon", "Girlboss"].map((label) => (
+            <span
+              key={label}
+              className="inline-flex rounded-full border border-amber-200/80 bg-[#fbf4e8] px-3 py-1 text-[11px] font-medium text-amber-900"
             >
-              {showExamples ? "Hide examples" : "Show examples"}
-            </button>
-          </div>
-
-          <div className="mt-4 hidden md:block">{showcaseGrid}</div>
-          {showExamples && <div className="mt-4 md:hidden">{showcaseGrid}</div>}
-
-          <div className="mt-4 rounded-2xl border border-amber-100/90 bg-[#fbf4e6]/92 px-4 py-3">
-            <p className="text-[12px] font-medium text-amber-900">
-              Clear pet photos usually create the strongest result.
-            </p>
-            <p className="mt-1 text-[11px] leading-5 text-slate-600">
-              Photos with a visible face and good lighting tend to work best.
-            </p>
-          </div>
+              {label}
+            </span>
+          ))}
         </div>
-      </section>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => setShowExamples((v) => !v)}
+        className="inline-flex self-start items-center gap-2 rounded-full border border-amber-200/90 bg-[#fbf4e8] px-4 py-2.5 text-[13px] font-semibold text-amber-900 transition hover:border-amber-300 hover:bg-amber-50 md:hidden"
+      >
+        <span>{showExamples ? "Hide style previews" : "Preview our styles"}</span>
+        <span className="text-[12px]">{showExamples ? "−" : "+"}</span>
+      </button>
+    </div>
+
+    <div className="mt-4 hidden md:block">{showcaseGrid}</div>
+    {showExamples && <div className="mt-4 md:hidden">{showcaseGrid}</div>}
+
+    {!showExamples && (
+      <p className="mt-4 text-[12px] text-slate-500 md:hidden">
+        Tap above to preview the original photo and all three style options.
+      </p>
+    )}
+  </div>
+</section>
 
       <section ref={step1Ref} className="mb-5">
         <div className="rounded-[1.8rem] border border-white/70 bg-[#f8f3e8]/88 px-5 py-5 shadow-[0_18px_45px_rgba(15,23,42,0.05)] backdrop-blur-sm md:px-6 md:py-6">
