@@ -7,6 +7,7 @@ import GymBottlePreview from "./GymBottlePreview";
 import PhotoTipsAccordion from "./PhotoTipsAccordion";
 import TopNav from "./TopNav";
 import { GenerationWheel } from "@/components/GenerationWheel";
+import Footer from "./Footer";
 
 // --- Image compression helper (keeps payload under Vercel limits) ---
 async function compressImageToDataUrl(
@@ -1458,6 +1459,7 @@ export default function HomeClient() {
           </div>
         </section>
       </div>
+      <Footer />
     </div>
   </main>
 );
