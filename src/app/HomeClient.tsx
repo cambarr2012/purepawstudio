@@ -744,44 +744,51 @@ export default function HomeClient() {
       <TopNav />
 
       <header className="mb-6 md:mb-8">
-        <div className="mx-auto max-w-4xl">
-          <div className="overflow-hidden rounded-[2rem] border border-white/70 bg-[#f8f3e8]/88 px-5 py-7 shadow-[0_18px_45px_rgba(15,23,42,0.05)] backdrop-blur-sm md:px-8 md:py-10">
-            <div className="text-center">
-              <h1 className="mx-auto max-w-3xl text-[2.25rem] font-semibold leading-[0.98] tracking-tight text-slate-950 md:text-6xl">
-                Turn your pet into a bottle worth showing off.
-              </h1>
+  <div className="mx-auto max-w-4xl">
+    <div className="relative overflow-visible rounded-[2rem] border border-white/70 bg-[#f8f3e8]/88 px-5 pb-7 pt-28 shadow-[0_18px_45px_rgba(15,23,42,0.05)] backdrop-blur-sm md:px-8 md:pb-10 md:pt-32">
+      <img
+        src="/peekingdog.png"
+        alt=""
+        aria-hidden="true"
+        className="pointer-events-none absolute left-1/2 top-0 z-20 w-[180px] -translate-x-1/2 translate-y-[12px] drop-shadow-[0_10px_18px_rgba(15,23,42,0.14)] md:w-[240px] md:translate-y-[16px]"
+      />
 
-              <p className="mx-auto mt-4 max-w-2xl text-[15px] leading-7 text-slate-600 md:text-lg">
-                Upload your pet photo, choose a style, and preview your
-                personalised bottle before checkout.
-              </p>
+      <div className="relative z-10 text-center">
+        <h1 className="mx-auto max-w-3xl text-[2.25rem] font-semibold leading-[0.98] tracking-tight text-slate-950 md:text-6xl">
+          Turn your pet into a bottle worth showing off.
+        </h1>
 
-              <div className="mt-6">
-                <button
-                  type="button"
-                  onClick={scrollToStep1}
-                  className="inline-flex items-center gap-2 rounded-full bg-amber-400 px-6 py-3 text-sm font-semibold text-slate-900 shadow-[0_12px_24px_rgba(251,191,36,0.28)] transition hover:bg-amber-300"
-                >
-                  <span>Start your design</span>
-                  <span className="text-[13px]">↓</span>
-                </button>
-              </div>
+        <p className="mx-auto mt-4 max-w-2xl text-[15px] leading-7 text-slate-600 md:text-lg">
+          Upload your pet photo, choose a style, and preview your
+          personalised bottle before checkout.
+        </p>
 
-              <div className="mt-5">
-                <p className="text-base font-semibold text-slate-900 md:text-lg">
-                  £19.99
-                </p>
-                <p className="mt-1 text-[13px] text-slate-600 md:text-sm">
-                  Available as a flask or gym bottle
-                </p>
-                <p className="mt-1 text-[12px] text-slate-500 md:text-[13px]">
-                  Printed in the UK · Free shipping
-                </p>
-              </div>
-            </div>
-          </div>
+        <div className="mt-6">
+          <button
+            type="button"
+            onClick={scrollToStep1}
+            className="inline-flex items-center gap-2 rounded-full bg-amber-400 px-6 py-3 text-sm font-semibold text-slate-900 shadow-[0_12px_24px_rgba(251,191,36,0.28)] transition hover:bg-amber-300"
+          >
+            <span>Start your design</span>
+            <span className="text-[13px]">↓</span>
+          </button>
         </div>
-      </header>
+
+        <div className="mt-5">
+          <p className="text-base font-semibold text-slate-900 md:text-lg">
+            £19.99
+          </p>
+          <p className="mt-1 text-[13px] text-slate-600 md:text-sm">
+            Available as a flask or gym bottle
+          </p>
+          <p className="mt-1 text-[12px] text-slate-500 md:text-[13px]">
+            Printed in the UK · Free UK shipping
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
 
       <section className="mb-5 md:mb-6">
         <div className="overflow-hidden rounded-[2rem] border border-white/70 bg-[#f8f3e8]/88 p-4 shadow-[0_18px_45px_rgba(15,23,42,0.05)] backdrop-blur-sm md:p-5">
