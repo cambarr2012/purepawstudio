@@ -668,12 +668,19 @@ export default function HomeClient() {
 
   const step1Active = currentStep === 1;
   const step2Active = currentStep === 2;
+  const step3Active =
+    (!!qualityResult && qualityResult.status !== "bad") ||
+    !!generatedArtUrl ||
+    isGenerating ||
+    showCompletedWheel;
+  const step4Active = canGoToCheckout;
 
   let overallStep = 1;
   if (previewUrl) overallStep = 1;
   if (qualityResult && qualityResult.status !== "bad") overallStep = 2;
-  if (generatedArtUrl) overallStep = 3;
-  const overallProgress = ((overallStep - 1) / 3) * 100;
+  if (generatedArtUrl || isGenerating || showCompletedWheel) overallStep = 3;
+  if (canGoToCheckout) overallStep = 4;
+  const overallProgress = ((overallStep - 1) / 4) * 100;
 
   function scrollToStep1() {
     step1Ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -878,67 +885,37 @@ export default function HomeClient() {
 
         <div className="mb-6 space-y-3">
           <div className="flex flex-wrap items-center justify-center gap-2 md:gap-3">
-            <div
-              className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-[11px] font-medium transition ${
-                step1Active || step2Active
-                  ? "border-amber-300 bg-amber-50 text-amber-900"
-                  : "border-slate-200 bg-white/80 text-slate-500"
-              }`}
-            >
-              <span
-                className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] ${
-                  step1Active || step2Active
-                    ? "bg-amber-400 text-slate-900"
-                    : "bg-slate-200 text-slate-500"
+            {[
+              { number: 1, label: "Upload photo", active: step1Active || step2Active || step3Active || step4Active },
+              { number: 2, label: "Check photo", active: step2Active || step3Active || step4Active },
+              { number: 3, label: "Create preview", active: step3Active || step4Active },
+              { number: 4, label: "Checkout", active: step4Active },
+            ].map((item) => (
+              <div
+                key={item.number}
+                className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-[11px] font-medium transition ${
+                  item.active
+                    ? "border-amber-300 bg-amber-50 text-amber-900"
+                    : "border-slate-200 bg-white/90 text-slate-500"
                 }`}
               >
-                1
-              </span>
-              <span>Upload photo</span>
-            </div>
-
-            <div
-              className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-[11px] font-medium transition ${
-                step2Active
-                  ? "border-amber-300 bg-amber-50 text-amber-900"
-                  : "border-slate-200 bg-white/80 text-slate-500"
-              }`}
-            >
-              <span
-                className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] ${
-                  step2Active
-                    ? "bg-amber-400 text-slate-900"
-                    : "bg-slate-200 text-slate-500"
-                }`}
-              >
-                2
-              </span>
-              <span>Choose style</span>
-            </div>
-
-            <div
-              className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-[11px] font-medium transition ${
-                canGoToCheckout
-                  ? "border-amber-300 bg-amber-50 text-amber-900"
-                  : "border-slate-200 bg-white/80 text-slate-500"
-              }`}
-            >
-              <span
-                className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] ${
-                  canGoToCheckout
-                    ? "bg-amber-400 text-slate-900"
-                    : "bg-slate-200 text-slate-500"
-                }`}
-              >
-                3
-              </span>
-              <span>Checkout</span>
-            </div>
+                <span
+                  className={`flex h-5 w-5 items-center justify-center rounded-full border text-[10px] ${
+                    item.active
+                      ? "border-amber-300 bg-amber-400 text-slate-900"
+                      : "border-slate-200 bg-white text-slate-600"
+                  }`}
+                >
+                  {item.number}
+                </span>
+                <span>{item.label}</span>
+              </div>
+            ))}
           </div>
 
           <p className="text-center text-[11px] text-slate-500 sm:hidden">
             Step <span className="font-semibold text-slate-800">{overallStep}</span>{" "}
-            of 3
+            of 4
           </p>
 
           <div className="mx-auto h-1.5 w-full max-w-md overflow-hidden rounded-full bg-[#e8dfcf]">
@@ -1469,9 +1446,12 @@ export default function HomeClient() {
             )}
 
             <div className="mt-6 border-t border-slate-200 pt-4">
-              <h3 className="mb-2 text-xs font-semibold text-slate-900">
-                Step 3 · Checkout
-              </h3>
+              <div className="mb-3 flex items-center gap-2">
+                <span className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold text-slate-700 shadow-sm">
+                  Step 4
+                </span>
+                <h3 className="text-xs font-semibold text-slate-900">Checkout</h3>
+              </div>
 
               <p className="mb-3 text-[11px] leading-5 text-slate-500">
                 When you’re happy with your preview, continue to secure checkout.
@@ -1481,7 +1461,7 @@ export default function HomeClient() {
                 type="button"
                 disabled={!canGoToCheckout}
                 onClick={handleGoToCheckout}
-                className="w-full rounded-full bg-slate-900 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
+                className="w-full rounded-full bg-amber-400 py-3 text-sm font-semibold text-slate-900 transition hover:bg-amber-300 disabled:opacity-60 disabled:hover:bg-amber-400"
               >
                 {canGoToCheckout
                   ? "Continue to checkout"
