@@ -45,6 +45,12 @@ function easeOutExpo(x: number) {
   return x === 1 ? 1 : 1 - Math.pow(2, -10 * x);
 }
 
+function formatStyleLabel(styleLabel?: string) {
+  if (!styleLabel) return styleLabel;
+  if (styleLabel.toLowerCase() === "disney") return "Cartoon";
+  return styleLabel;
+}
+
 export function GenerationWheel({
   step,
   styleLabel,
@@ -96,6 +102,8 @@ export function GenerationWheel({
   const prevRunIdRef = useRef<string | number | undefined>(undefined);
   const prevStepRef = useRef<GenStep | null>(null);
   const rafRef = useRef<number>(0);
+
+  const displayStyleLabel = formatStyleLabel(styleLabel);
 
   const resetRun = () => {
     startRef.current = performance.now();
@@ -203,8 +211,8 @@ export function GenerationWheel({
       <div className="text-center px-6 max-w-sm">
         <div className="text-sm font-semibold text-slate-900">
           Creating your design
-          {styleLabel ? (
-            <span className="text-amber-600"> · {styleLabel}</span>
+          {displayStyleLabel ? (
+            <span className="text-amber-600"> · {displayStyleLabel}</span>
           ) : null}
         </div>
 

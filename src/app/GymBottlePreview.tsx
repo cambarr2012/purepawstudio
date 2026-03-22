@@ -23,6 +23,13 @@ export default function GymBottlePreview({
 
   const scaleX = styleId === "gangster" ? 1 : 1;
 
+  const styleDisplay =
+    styleId === "disney"
+      ? "Cartoon"
+      : styleId === "girlboss"
+      ? "Girlboss"
+      : "Gangster";
+
   return (
     <div className="w-full flex-1 flex items-center justify-center">
       <div
@@ -79,7 +86,7 @@ export default function GymBottlePreview({
         <div className="absolute bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-white/90 text-[10px] font-medium text-slate-800 border border-slate-200 backdrop-blur flex items-center gap-1 pointer-events-none shadow-sm">
           <span>{hasGeneratedArt ? "Final design" : "No design yet"}</span>
           <span className="opacity-40">·</span>
-          <span className="capitalize text-amber-600">{styleId}</span>
+          <span className="text-amber-600">{styleDisplay}</span>
         </div>
       </div>
     </div>

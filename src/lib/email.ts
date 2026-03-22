@@ -58,6 +58,7 @@ function formatProductName(productType?: string | null) {
 
 function formatStyleName(styleId?: string | null) {
   if (!styleId) return "Custom";
+  if (styleId === "disney") return "Cartoon";
 
   return styleId
     .replace(/[-_]+/g, " ")
