@@ -94,9 +94,8 @@ function getDisplayStepFromProgress(progress: number, isComplete: boolean) {
     };
   }
 
-  // These thresholds are based on the visible ring jumps rather than internal pipeline names.
-  // 1st visible jump/band
-  if (progress < 0.24) {
+  // Step 1 = first visible jump/band
+  if (progress < 0.22) {
     return {
       stepNumber: 1,
       totalSteps: 3,
@@ -104,8 +103,8 @@ function getDisplayStepFromProgress(progress: number, isComplete: boolean) {
     };
   }
 
-  // 2nd main fill band
-  if (progress < 0.82) {
+  // Step 2 = second visible jump through the main ~3/4 fill phase
+  if (progress < 0.86) {
     return {
       stepNumber: 2,
       totalSteps: 3,
@@ -113,7 +112,7 @@ function getDisplayStepFromProgress(progress: number, isComplete: boolean) {
     };
   }
 
-  // 3rd/final visible fill band
+  // Step 3 = final visible band
   return {
     stepNumber: 3,
     totalSteps: 3,
