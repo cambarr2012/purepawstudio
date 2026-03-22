@@ -2,30 +2,71 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { sendOrderConfirmationEmail } from "@/lib/email";
+import {
+  sendInternalOrderAlertEmail,
+  sendOrderConfirmationEmail,
+} from "@/lib/email";
 
 export const runtime = "nodejs";
 
+type SessionMetadata = {
+  orderId?: string;
+  artworkId?: string;
+  artworkUrl?: string;
+  order_id?: string;
+  artwork_id?: string;
+  artwork_url?: string;
+  styleId?: string;
+  style_id?: string;
+  productType?: string;
+  product_type?: string;
+  [key: string]: string | undefined;
+};
+
+function getAppUrl() {
+  if (process.env.NODE_ENV === "development") {
+    return "http://localhost:3000";
+  }
+
+  return (
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    "https://purepawstudio.com"
+  );
+}
+
+function getFirstName(fullName?: string | null) {
+  return fullName?.trim()?.split(/\s+/)[0] || null;
+}
+
+function resolvePaymentIntentId(
+  paymentIntent: Stripe.Checkout.Session["payment_intent"]
+) {
+  if (!paymentIntent) return null;
+  if (typeof paymentIntent === "string") return paymentIntent;
+  return paymentIntent.id || null;
+}
+
+function pickString(...values: Array<unknown>) {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+  }
+  return null;
+}
+
 export async function POST(req: Request) {
+  const rawBody = await req.text();
+  const sig = req.headers.get("stripe-signature");
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+
+  let event: Stripe.Event;
+
   try {
-    const rawBody = await req.text();
-    const sig = req.headers.get("stripe-signature");
-    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-    const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-
-    let event: Stripe.Event;
-
     if (process.env.NODE_ENV === "development") {
-      try {
-        event = JSON.parse(rawBody) as Stripe.Event;
-        console.log("[webhook][dev] Parsed event without signature check:", {
-          id: event.id,
-          type: event.type,
-        });
-      } catch (err: any) {
-        console.error("[webhook][dev] Failed to parse raw body:", err?.message);
-        return new NextResponse("Bad event payload", { status: 400 });
-      }
+      event = JSON.parse(rawBody) as Stripe.Event;
     } else {
       if (!sig || !webhookSecret || !stripeSecretKey) {
         console.error("[webhook] Missing sig/secret/stripe key", {
@@ -48,219 +89,225 @@ export async function POST(req: Request) {
       }
     }
 
-    console.log("[webhook] Received event type:", event.type);
+    if (event.type !== "checkout.session.completed") {
+      console.log("[webhook] Ignoring event type:", event.type);
+      return new NextResponse("OK", { status: 200 });
+    }
 
-    if (event.type === "checkout.session.completed") {
-      const session = event.data.object as Stripe.Checkout.Session;
+    const session = event.data.object as Stripe.Checkout.Session;
+    const metadata = (session.metadata || {}) as SessionMetadata;
 
-      const metadata = (session.metadata || {}) as {
-        orderId?: string;
-        artworkId?: string;
-        artworkUrl?: string;
-        order_id?: string;
-        artwork_id?: string;
-        artwork_url?: string;
-        styleId?: string;
-        style_id?: string;
-        productType?: string;
-        product_type?: string;
-        [key: string]: string | undefined;
-      };
+    const orderId =
+      metadata.orderId ||
+      metadata.order_id ||
+      session.client_reference_id ||
+      undefined;
 
-      const orderId =
-        metadata.orderId || metadata.order_id || session.client_reference_id;
+    const artworkId = metadata.artworkId || metadata.artwork_id || undefined;
+    const artworkUrl = metadata.artworkUrl || metadata.artwork_url || undefined;
+    const styleId = metadata.styleId || metadata.style_id || undefined;
+    const productType =
+      metadata.productType || metadata.product_type || "flask";
 
-      const artworkId =
-        metadata.artworkId || metadata.artwork_id || undefined;
+    const customerName = session.customer_details?.name || null;
+    const customerEmail =
+      session.customer_details?.email || session.customer_email || null;
+    const firstName = getFirstName(customerName);
+    const paymentIntentId = resolvePaymentIntentId(session.payment_intent);
 
-      const artworkUrl =
-        metadata.artworkUrl || metadata.artwork_url || undefined;
+    let shouldSendConfirmationEmail = false;
+    let printFileUrl: string | null = null;
+    let animationUrl: string | null = null;
+    let orderRow: Record<string, any> | null = null;
 
-      const styleIdMeta =
-        metadata.styleId || metadata.style_id || undefined;
+    if (!orderId) {
+      console.warn("[webhook] No orderId resolved.");
+    } else {
+      try {
+        const { data, error } = await supabaseAdmin
+          .from("orders")
+          .select("*")
+          .eq("order_id", orderId)
+          .maybeSingle();
 
-      const productType =
-        metadata.productType || metadata.product_type || "flask";
+        if (error) {
+          console.error("[webhook] Failed to fetch order row:", error);
+        } else if (!data) {
+          console.warn("[webhook] No order found for orderId:", orderId);
+        } else {
+          orderRow = data;
+          shouldSendConfirmationEmail = data.status !== "paid";
 
-      console.log("[webhook] checkout.session.completed metadata:", metadata);
-      console.log("[webhook] Resolved orderId/artworkId/styleId/productType:", {
-        orderId,
-        artworkId,
-        styleId: styleIdMeta,
-        productType,
-      });
-
-      const customerEmail =
-        session.customer_details?.email || session.customer_email || null;
-
-      const firstName =
-        session.customer_details?.name?.trim()?.split(/\s+/)[0] || null;
-
-      let shouldSendConfirmationEmail = false;
-
-      if (orderId) {
-        try {
-          const { data: existingOrder, error: fetchError } = await supabaseAdmin
+          const { error: updateError } = await supabaseAdmin
             .from("orders")
-            .select("order_id, status")
-            .eq("order_id", orderId)
-            .maybeSingle();
+            .update({
+              stripe_session_id: session.id,
+              status: "paid",
+            })
+            .eq("order_id", orderId);
 
-          if (fetchError) {
-            console.error("[webhook] Failed to fetch existing order:", fetchError);
-          } else if (!existingOrder) {
-            console.warn("[webhook] No order found for orderId:", orderId);
+          if (updateError) {
+            console.error("[webhook] Failed to update order:", updateError);
+            shouldSendConfirmationEmail = false;
           } else {
-            shouldSendConfirmationEmail = existingOrder.status !== "paid";
-
-            const { error: updateError } = await supabaseAdmin
-              .from("orders")
-              .update({
-                stripe_session_id: session.id,
-                status: "paid",
-              })
-              .eq("order_id", orderId);
-
-            if (updateError) {
-              console.error(
-                "[webhook] Failed to update order with Stripe session:",
-                updateError
-              );
-              shouldSendConfirmationEmail = false;
-            }
+            console.log("[webhook] Order marked paid:", {
+              orderId,
+              stripeSessionId: session.id,
+            });
           }
-        } catch (err) {
-          console.error(
-            "[webhook] Error while updating order with Stripe session:",
-            err
-          );
-          shouldSendConfirmationEmail = false;
         }
-      } else {
-        console.warn(
-          "[webhook] No orderId resolved – cannot update order with Stripe session."
-        );
+      } catch (err) {
+        console.error("[webhook] Error fetching/updating order:", err);
+        shouldSendConfirmationEmail = false;
       }
+    }
 
-      let animationUrl: string | null = null;
+    if (!orderId) {
+      console.warn("[webhook] No orderId resolved – cannot generate print file.");
+    } else if (!artworkId) {
+      console.warn("[webhook] No artworkId – cannot generate print file.");
+    } else if (!artworkUrl) {
+      console.warn("[webhook] No artworkUrl – cannot generate print file.");
+    } else {
+      try {
+        const appUrl = getAppUrl();
 
-      if (!orderId) {
-        console.warn(
-          "[webhook] No orderId resolved – cannot generate print file."
-        );
-      } else if (!artworkId) {
-        console.warn(
-          "[webhook] No artworkId in metadata – cannot generate print file."
-        );
-      } else if (!artworkUrl) {
-        console.warn(
-          "[webhook] No artworkUrl in metadata – cannot generate print file."
-        );
-      } else {
-        try {
-          const appUrl =
-            process.env.NODE_ENV === "development"
-              ? "http://localhost:3000"
-              : process.env.NEXT_PUBLIC_APP_URL ||
-                process.env.NEXT_PUBLIC_SITE_URL ||
-                "https://purepawstudio.com";
-
-          console.log("[webhook] Using appUrl:", appUrl);
-          console.log("[webhook] Calling generate-print-file with:", {
+        const res = await fetch(`${appUrl}/api/orders/generate-print-file`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
             orderId,
             artworkId,
             artworkUrl,
-            styleId: styleIdMeta,
-          });
+            styleId,
+          }),
+        });
 
-          const res = await fetch(`${appUrl}/api/orders/generate-print-file`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              orderId,
-              artworkId,
-              artworkUrl,
-              styleId: styleIdMeta,
-            }),
-          });
+        if (!res.ok) {
+          const text = await res.text();
+          console.error("[webhook] generate-print-file failed:", res.status, text);
+        } else {
+          const data = (await res.json()) as {
+            printFileUrl?: string;
+            targetUrl?: string;
+            qrTargetUrl?: string;
+          };
 
-          if (!res.ok) {
-            const text = await res.text();
-            console.error(
-              "[webhook] generate-print-file failed:",
-              res.status,
-              text
-            );
-          } else {
-            const data = (await res.json()) as {
-              printFileUrl?: string;
-              targetUrl?: string;
-              qrTargetUrl?: string;
-              [key: string]: any;
-            };
-
-            animationUrl = data.qrTargetUrl || data.targetUrl || null;
-
-            console.log(
-              "[webhook] generate-print-file success. Response summary:",
-              {
-                printFileUrl: data.printFileUrl,
-                animationUrl,
-              }
-            );
-          }
-        } catch (err) {
-          console.error(
-            "[webhook] Error while calling generate-print-file:",
-            err
-          );
+          printFileUrl = data.printFileUrl || null;
+          animationUrl = data.qrTargetUrl || data.targetUrl || null;
         }
+      } catch (err) {
+        console.error("[webhook] Error generating print file:", err);
       }
+    }
 
-      if (!orderId) {
-        console.warn(
-          "[webhook] No orderId resolved – cannot send confirmation email."
-        );
-      } else if (!customerEmail) {
-        console.warn(
-          "[webhook] No customer email on session – cannot send confirmation email."
-        );
-      } else if (!shouldSendConfirmationEmail) {
-        console.log(
-          "[webhook] Confirmation email skipped (already paid, order missing, or update failed)."
-        );
-      } else {
-        try {
-          const emailResult = await sendOrderConfirmationEmail({
-            to: customerEmail,
-            firstName,
-            orderId,
-            productType,
-            styleId: styleIdMeta,
-            animationUrl,
-          });
-
-          console.log("[webhook] Confirmation email sent:", {
-            orderId,
-            to: customerEmail,
-            animationUrl,
-            emailId: emailResult.data?.id,
-            error: emailResult.error,
-          });
-        } catch (err) {
-          console.error("[webhook] Failed to send confirmation email:", err);
-        }
-      }
+    if (!orderId) {
+      console.warn("[webhook] No orderId – cannot send confirmation email.");
+    } else if (!customerEmail) {
+      console.warn("[webhook] No customer email – cannot send confirmation email.");
+    } else if (!shouldSendConfirmationEmail) {
+      console.log("[webhook] Confirmation email skipped.");
     } else {
-      console.log("[webhook] Unhandled event type, ignoring:", event.type);
+      try {
+        const emailResult = await sendOrderConfirmationEmail({
+          to: customerEmail,
+          firstName,
+          orderId,
+          productType:
+            pickString(
+              orderRow?.product_type,
+              orderRow?.productType,
+              productType
+            ) || "flask",
+          styleId:
+            pickString(orderRow?.style_id, orderRow?.styleId, styleId) || undefined,
+          animationUrl,
+        });
+
+        console.log("[webhook] Confirmation email sent:", {
+          orderId,
+          to: customerEmail,
+          emailId: emailResult.data?.id,
+          error: emailResult.error,
+        });
+      } catch (err) {
+        console.error("[webhook] Failed to send confirmation email:", err);
+      }
+    }
+
+    try {
+      const internalAlertTo =
+        process.env.INTERNAL_ORDER_ALERT_EMAIL || "support@purepawstudio.com";
+
+      const resolvedCustomerName =
+        pickString(
+          orderRow?.customer_name,
+          orderRow?.customerName,
+          customerName
+        ) || null;
+
+      const resolvedCustomerEmail =
+        pickString(orderRow?.email, orderRow?.customer_email, customerEmail) || null;
+
+      const resolvedProductType =
+        pickString(orderRow?.product_type, orderRow?.productType, productType) ||
+        "flask";
+
+      const resolvedStyleId =
+        pickString(orderRow?.style_id, orderRow?.styleId, styleId) || undefined;
+
+      const shippingName =
+        pickString(
+          orderRow?.shipping_name,
+          orderRow?.customer_name,
+          orderRow?.customerName,
+          customerName
+        ) || null;
+
+      const shippingAddress = {
+        line1: pickString(orderRow?.address_line1, orderRow?.addressLine1),
+        line2: pickString(orderRow?.address_line2, orderRow?.addressLine2),
+        city: pickString(orderRow?.city),
+        state: pickString(orderRow?.state, orderRow?.county, orderRow?.region),
+        postal_code: pickString(orderRow?.postcode, orderRow?.postal_code),
+        country: pickString(orderRow?.country),
+      };
+
+      const internalResult = await sendInternalOrderAlertEmail({
+        to: internalAlertTo,
+        orderId: orderId || "unknown",
+        customerName: resolvedCustomerName,
+        customerEmail: resolvedCustomerEmail,
+        productType: resolvedProductType,
+        styleId: resolvedStyleId,
+        animationUrl,
+        amountTotal: session.amount_total ?? null,
+        currency: session.currency ?? null,
+        stripeSessionId: session.id,
+        paymentIntentId,
+        artworkId,
+        artworkUrl,
+        printFileUrl,
+        shippingName,
+        shippingAddress,
+      });
+
+      console.log("[webhook] Internal order alert sent:", {
+        orderId,
+        to: internalAlertTo,
+        emailId: internalResult.data?.id,
+        error: internalResult.error,
+      });
+    } catch (err) {
+      console.error("[webhook] Failed to send internal order alert:", err);
     }
 
     return new NextResponse("OK", { status: 200 });
   } catch (err) {
     console.error("[webhook] Unhandled top-level error:", err);
-    return new NextResponse("OK", { status: 200 });
+    return new NextResponse("Internal webhook error", { status: 500 });
   }
 }
 
