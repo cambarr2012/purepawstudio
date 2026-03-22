@@ -37,44 +37,38 @@ type StepConfig = {
   end: number;
   expectedMs: number;
   cap: number;
-  label: string;
 };
 
 const STEP_CONFIG: Record<GenStep, StepConfig> = {
   remove_bg: {
     start: 0.04,
-    end: 0.18,
+    end: 0.22,
     expectedMs: 1800,
-    cap: 0.88,
-    label: "Isolating your pet",
+    cap: 0.9,
   },
   generate_art: {
-    start: 0.18,
-    end: 0.72,
+    start: 0.22,
+    end: 0.78,
     expectedMs: 19000,
     cap: 0.9,
-    label: "Creating your design",
   },
   polish: {
-    start: 0.72,
-    end: 0.84,
-    expectedMs: 3500,
-    cap: 0.9,
-    label: "Cleaning up the details",
+    start: 0.78,
+    end: 0.86,
+    expectedMs: 2600,
+    cap: 0.92,
   },
   prepare_preview: {
-    start: 0.84,
-    end: 0.93,
+    start: 0.86,
+    end: 0.94,
     expectedMs: 1800,
-    cap: 0.92,
-    label: "Placing it on your bottle",
+    cap: 0.94,
   },
   finalise: {
-    start: 0.93,
+    start: 0.94,
     end: 0.985,
     expectedMs: 1400,
     cap: 0.96,
-    label: "Adding the finishing touches",
   },
 };
 
@@ -90,6 +84,30 @@ function formatStyleLabel(styleLabel?: string) {
   if (!styleLabel) return styleLabel;
   if (styleLabel.toLowerCase() === "disney") return "Cartoon";
   return styleLabel;
+}
+
+function getDisplayStep(step: GenStep) {
+  if (step === "remove_bg") {
+    return {
+      stepNumber: 1,
+      totalSteps: 3,
+      label: "Preparing your pet",
+    };
+  }
+
+  if (step === "generate_art") {
+    return {
+      stepNumber: 2,
+      totalSteps: 3,
+      label: "Creating your design",
+    };
+  }
+
+  return {
+    stepNumber: 3,
+    totalSteps: 3,
+    label: "Finalising your preview",
+  };
 }
 
 export function GenerationWheel({
@@ -122,7 +140,8 @@ export function GenerationWheel({
   const circumference = 2 * Math.PI * radius;
 
   const currentStepConfig = useMemo(() => STEP_CONFIG[step], [step]);
-  const currentStatus = currentStepConfig.label;
+  const displayStep = getDisplayStep(step);
+  const currentStatus = displayStep.label;
 
   const resetRun = () => {
     cancelAnimationFrame(rafRef.current);
@@ -218,7 +237,7 @@ export function GenerationWheel({
     const tick = () => {
       const now = performance.now();
       const elapsedInStep = now - stepStartedAtRef.current;
-      const { start, end, expectedMs, cap } = STEP_CONFIG[step];
+      const { start, end, expectedMs, cap } = currentStepConfig;
 
       const raw = clamp(elapsedInStep / expectedMs, 0, 1);
       const eased = easeOutExpo(raw);
@@ -234,7 +253,7 @@ export function GenerationWheel({
 
     rafRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [step, isDone]);
+  }, [currentStepConfig, isDone]);
 
   useEffect(() => {
     const TIP_MS = 3800;
@@ -248,15 +267,15 @@ export function GenerationWheel({
   const dash = circumference * progress;
 
   return (
-    <div className="w-full flex flex-col items-center justify-center gap-4 py-6">
-      <div className="relative w-36 h-36">
+    <div className="flex w-full flex-col items-center justify-center gap-4 py-6">
+      <div className="relative h-36 w-36">
         <div
           className={`absolute inset-0 rounded-full blur-2xl transition-all duration-500 ${
             isComplete ? "bg-emerald-200/35 scale-110" : "bg-amber-200/30"
           }`}
         />
 
-        <svg viewBox="0 0 120 120" className="relative w-full h-full">
+        <svg viewBox="0 0 120 120" className="relative h-full w-full">
           <circle
             cx="60"
             cy="60"
@@ -284,10 +303,10 @@ export function GenerationWheel({
 
         <div className="absolute inset-0 grid place-items-center">
           <div
-            className={`grid place-items-center w-16 h-16 rounded-2xl border shadow-sm backdrop-blur transition-all duration-500 ${
+            className={`grid h-16 w-16 place-items-center rounded-2xl border shadow-sm backdrop-blur transition-all duration-500 ${
               isComplete
-                ? "bg-emerald-50/90 border-emerald-200 scale-105"
-                : "bg-white/85 border-slate-200"
+                ? "scale-105 border-emerald-200 bg-emerald-50/90"
+                : "border-slate-200 bg-white/85"
             }`}
           >
             <PawSpinner
@@ -300,7 +319,7 @@ export function GenerationWheel({
         </div>
       </div>
 
-      <div className="text-center px-6 max-w-sm">
+      <div className="max-w-sm px-6 text-center">
         <div className="text-sm font-semibold text-slate-900">
           {isComplete ? "Design ready" : currentStatus}
           {displayStyleLabel ? (
@@ -311,12 +330,12 @@ export function GenerationWheel({
         <div className="mt-2 text-xs text-slate-500">
           {isComplete
             ? "Your preview is ready."
-            : `Step ${Object.keys(STEP_CONFIG).indexOf(step) + 1} of 5`}
+            : `Step ${displayStep.stepNumber} of ${displayStep.totalSteps}`}
         </div>
 
         <div className="mt-3 text-[11px] text-slate-700 transition-all duration-300">
           <span
-            className={`inline-flex items-center gap-2 rounded-full px-3 py-1 border transition-colors duration-500 ${
+            className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 transition-colors duration-500 ${
               isComplete
                 ? "border-emerald-200 bg-emerald-50"
                 : "border-amber-200 bg-amber-50"
