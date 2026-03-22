@@ -10,7 +10,6 @@ export type GenStep =
   | "prepare_preview"
   | "finalise";
 
-// Fun facts + dry humour only
 const FUN_TIPS: string[] = [
   "No pets were bribed with treats during this process. Probably.",
   "Still faster than teaching a dog to sit.",
@@ -86,8 +85,18 @@ function formatStyleLabel(styleLabel?: string) {
   return styleLabel;
 }
 
-function getDisplayStep(step: GenStep) {
-  if (step === "remove_bg") {
+function getDisplayStepFromProgress(progress: number, isComplete: boolean) {
+  if (isComplete) {
+    return {
+      stepNumber: 3,
+      totalSteps: 3,
+      label: "Design ready",
+    };
+  }
+
+  // These thresholds are based on the visible ring jumps rather than internal pipeline names.
+  // 1st visible jump/band
+  if (progress < 0.24) {
     return {
       stepNumber: 1,
       totalSteps: 3,
@@ -95,7 +104,8 @@ function getDisplayStep(step: GenStep) {
     };
   }
 
-  if (step === "generate_art") {
+  // 2nd main fill band
+  if (progress < 0.82) {
     return {
       stepNumber: 2,
       totalSteps: 3,
@@ -103,6 +113,7 @@ function getDisplayStep(step: GenStep) {
     };
   }
 
+  // 3rd/final visible fill band
   return {
     stepNumber: 3,
     totalSteps: 3,
@@ -140,8 +151,7 @@ export function GenerationWheel({
   const circumference = 2 * Math.PI * radius;
 
   const currentStepConfig = useMemo(() => STEP_CONFIG[step], [step]);
-  const displayStep = getDisplayStep(step);
-  const currentStatus = displayStep.label;
+  const displayStep = getDisplayStepFromProgress(progress, isComplete);
 
   const resetRun = () => {
     cancelAnimationFrame(rafRef.current);
@@ -321,7 +331,7 @@ export function GenerationWheel({
 
       <div className="max-w-sm px-6 text-center">
         <div className="text-sm font-semibold text-slate-900">
-          {isComplete ? "Design ready" : currentStatus}
+          {displayStep.label}
           {displayStyleLabel ? (
             <span className="text-amber-600"> · {displayStyleLabel}</span>
           ) : null}
