@@ -8,17 +8,35 @@ export function PawSpinner({
   className?: string;
 }) {
   return (
-    <div
-      className={`animate-spin [animation-duration:2.4s] ${className}`}
-      style={{ width: size, height: size }}
-      aria-hidden="true"
-    >
-      <img
-        src="/spinningpaw.png"
-        alt=""
-        className="w-full h-full object-contain select-none pointer-events-none"
-        draggable={false}
-      />
-    </div>
+    <>
+      <style jsx>{`
+        @keyframes pawspinner-spin {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
+      `}</style>
+
+      <div
+        className={className}
+        style={{
+          width: size,
+          height: size,
+          animation: "pawspinner-spin 2.4s linear infinite",
+          willChange: "transform",
+        }}
+        aria-hidden="true"
+      >
+        <img
+          src="/spinningpaw.png"
+          alt=""
+          className="w-full h-full object-contain select-none pointer-events-none"
+          draggable={false}
+        />
+      </div>
+    </>
   );
 }

@@ -32,15 +32,56 @@ const FUN_TIPS: string[] = [
   "Dogs’ sense of smell is tens of thousands of times stronger than ours.",
 ];
 
+type StepConfig = {
+  start: number;
+  end: number;
+  expectedMs: number;
+  cap: number;
+  label: string;
+};
+
+const STEP_CONFIG: Record<GenStep, StepConfig> = {
+  remove_bg: {
+    start: 0.04,
+    end: 0.18,
+    expectedMs: 1800,
+    cap: 0.88,
+    label: "Isolating your pet",
+  },
+  generate_art: {
+    start: 0.18,
+    end: 0.72,
+    expectedMs: 19000,
+    cap: 0.9,
+    label: "Creating your design",
+  },
+  polish: {
+    start: 0.72,
+    end: 0.84,
+    expectedMs: 3500,
+    cap: 0.9,
+    label: "Cleaning up the details",
+  },
+  prepare_preview: {
+    start: 0.84,
+    end: 0.93,
+    expectedMs: 1800,
+    cap: 0.92,
+    label: "Placing it on your bottle",
+  },
+  finalise: {
+    start: 0.93,
+    end: 0.985,
+    expectedMs: 1400,
+    cap: 0.96,
+    label: "Adding the finishing touches",
+  },
+};
+
 function clamp(n: number, a = 0, b = 1) {
   return Math.max(a, Math.min(b, n));
 }
 
-/**
- * Domino’s-like feel:
- * - move quickly early
- * - slow down near the end
- */
 function easeOutExpo(x: number) {
   return x === 1 ? 1 : 1 - Math.pow(2, -10 * x);
 }
@@ -54,64 +95,68 @@ function formatStyleLabel(styleLabel?: string) {
 export function GenerationWheel({
   step,
   styleLabel,
-  /**
-   * pass a changing value (e.g. Date.now()) at the start of each generation
-   * so the wheel resets properly every time.
-   */
   runId,
+  isDone = false,
 }: {
   step: GenStep;
   styleLabel?: string;
   runId?: string | number;
+  isDone?: boolean;
 }) {
-  /**
-   * Make it FEEL like a real pipeline:
-   * - remove_bg is usually quick
-   * - generate_art is the long part
-   * - polish/finalise/preview are short but should visibly move the ring
-   *
-   * This is "perceived time" (UX), not exact measurement.
-   */
-  const EXPECTED_TOTAL_MS = 38_000; // tweak if you want: 32–45s feels good
-  const HOVER_CAP = 0.97;
+  const displayStyleLabel = formatStyleLabel(styleLabel);
 
-  /**
-   * Step floors (minimum ring fill per step).
-   * This prevents the ring looking stuck when steps advance.
-   */
-  const STEP_FLOOR: Record<GenStep, number> = useMemo(
-    () => ({
-      remove_bg: 0.14,
-      generate_art: 0.28,
-      polish: 0.72,
-      finalise: 0.86,
-      prepare_preview: 0.93,
-    }),
-    []
-  );
-
-  const [progress, setProgress] = useState<number>(STEP_FLOOR.remove_bg);
-
-  // tips
+  const [progress, setProgress] = useState<number>(STEP_CONFIG.remove_bg.start);
   const [tipIndex, setTipIndex] = useState(
     Math.floor(Math.random() * FUN_TIPS.length)
   );
+  const [isComplete, setIsComplete] = useState(false);
 
-  // timing refs
-  const startRef = useRef<number>(0);
   const prevRunIdRef = useRef<string | number | undefined>(undefined);
   const prevStepRef = useRef<GenStep | null>(null);
+  const stepStartedAtRef = useRef<number>(performance.now());
   const rafRef = useRef<number>(0);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const completionSoundPlayedRef = useRef(false);
 
-  const displayStyleLabel = formatStyleLabel(styleLabel);
+  const radius = 44;
+  const circumference = 2 * Math.PI * radius;
+
+  const currentStepConfig = useMemo(() => STEP_CONFIG[step], [step]);
+  const currentStatus = currentStepConfig.label;
 
   const resetRun = () => {
-    startRef.current = performance.now();
-    setProgress(STEP_FLOOR.remove_bg);
+    cancelAnimationFrame(rafRef.current);
+    stepStartedAtRef.current = performance.now();
+    prevStepRef.current = step;
+    setProgress(STEP_CONFIG.remove_bg.start);
     setTipIndex(Math.floor(Math.random() * FUN_TIPS.length));
+    setIsComplete(false);
+    completionSoundPlayedRef.current = false;
+
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
   };
 
-  // Reset on runId change (primary)
+  const playCompleteSound = async () => {
+    if (completionSoundPlayedRef.current) return;
+    completionSoundPlayedRef.current = true;
+
+    try {
+      if (!audioRef.current) {
+        audioRef.current = new Audio("/ping.mp3");
+        audioRef.current.preload = "auto";
+        audioRef.current.volume = 0.35;
+      }
+
+      audioRef.current.currentTime = 0;
+      await audioRef.current.play();
+    } catch (err) {
+      console.warn("[GenerationWheel] Completion sound blocked or failed:", err);
+    }
+  };
+
   useEffect(() => {
     const runChanged = runId !== undefined && prevRunIdRef.current !== runId;
 
@@ -119,62 +164,98 @@ export function GenerationWheel({
       prevRunIdRef.current = runId;
       resetRun();
     }
-  }, [runId]);
+  }, [runId, step]);
 
-  // When step changes, jump progress forward to that step's floor
   useEffect(() => {
-    if (prevStepRef.current !== step) {
+    const audio = new Audio("/ping.mp3");
+    audio.preload = "auto";
+    audio.volume = 0.35;
+    audioRef.current = audio;
+
+    return () => {
+      audio.pause();
+      audioRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    const prevStep = prevStepRef.current;
+
+    if (prevStep !== step) {
+      const prevConfig = prevStep ? STEP_CONFIG[prevStep] : null;
+      const nextConfig = STEP_CONFIG[step];
+
+      stepStartedAtRef.current = performance.now();
+
+      setProgress((current) => {
+        const snappedTo =
+          prevConfig && current < prevConfig.end ? prevConfig.end : current;
+        return Math.max(snappedTo, nextConfig.start);
+      });
+
       prevStepRef.current = step;
-      const floor = STEP_FLOOR[step] ?? 0.12;
-      setProgress((p) => (p < floor ? floor : p));
+
+      if (step === "finalise") {
+        setIsComplete(false);
+      }
     }
-  }, [step, STEP_FLOOR]);
+  }, [step]);
 
-  // Domino’s style progress loop (fast early, slows into hover cap)
   useEffect(() => {
+    if (!isDone) return;
+
+    cancelAnimationFrame(rafRef.current);
+    setProgress(1);
+    setIsComplete(true);
+    void playCompleteSound();
+  }, [isDone]);
+
+  useEffect(() => {
+    if (isDone) return;
+
+    cancelAnimationFrame(rafRef.current);
+
     const tick = () => {
-      const elapsed = performance.now() - startRef.current;
-      const raw = clamp(elapsed / EXPECTED_TOTAL_MS, 0, 1);
+      const now = performance.now();
+      const elapsedInStep = now - stepStartedAtRef.current;
+      const { start, end, expectedMs, cap } = STEP_CONFIG[step];
+
+      const raw = clamp(elapsedInStep / expectedMs, 0, 1);
       const eased = easeOutExpo(raw);
+      const targetWithinStep = start + (end - start) * cap * eased;
 
-      const floor = STEP_FLOOR[step] ?? 0.12;
-
-      // Fill from floor → hover cap (never reaches 100% here)
-      const next = clamp(floor + eased * (HOVER_CAP - floor), floor, HOVER_CAP);
-
-      setProgress((cur) => (next > cur ? next : cur));
+      setProgress((current) => {
+        const next = Math.max(current, targetWithinStep);
+        return clamp(next, 0, 0.985);
+      });
 
       rafRef.current = requestAnimationFrame(tick);
     };
 
-    // ensure startRef is initialised for first mount too
-    if (startRef.current === 0) startRef.current = performance.now();
-
     rafRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [step, STEP_FLOOR]);
+  }, [step, isDone]);
 
-  // rotate tips
   useEffect(() => {
     const TIP_MS = 3800;
     const t = setInterval(() => {
       setTipIndex((i) => (i + 1) % FUN_TIPS.length);
     }, TIP_MS);
+
     return () => clearInterval(t);
   }, []);
 
-  // ring SVG math
-  const radius = 44;
-  const circumference = 2 * Math.PI * radius;
   const dash = circumference * progress;
 
   return (
     <div className="w-full flex flex-col items-center justify-center gap-4 py-6">
       <div className="relative w-36 h-36">
-        {/* Glow */}
-        <div className="absolute inset-0 rounded-full bg-amber-200/30 blur-2xl" />
+        <div
+          className={`absolute inset-0 rounded-full blur-2xl transition-all duration-500 ${
+            isComplete ? "bg-emerald-200/35 scale-110" : "bg-amber-200/30"
+          }`}
+        />
 
-        {/* Ring */}
         <svg viewBox="0 0 120 120" className="relative w-full h-full">
           <circle
             cx="60"
@@ -193,33 +274,58 @@ export function GenerationWheel({
             strokeWidth="10"
             fill="none"
             strokeLinecap="round"
-            className="text-amber-500 transition-[stroke-dasharray] duration-300"
+            className={`transition-[stroke-dasharray,stroke] duration-300 ${
+              isComplete ? "text-emerald-500" : "text-amber-500"
+            }`}
             strokeDasharray={`${dash} ${Math.max(0, circumference - dash)}`}
             transform="rotate(-90 60 60)"
           />
         </svg>
 
-        {/* Centre spinner */}
         <div className="absolute inset-0 grid place-items-center">
-          <div className="grid place-items-center w-16 h-16 rounded-2xl bg-white/85 border border-slate-200 shadow-sm backdrop-blur">
-            <PawSpinner size={44} className="drop-shadow-sm" />
+          <div
+            className={`grid place-items-center w-16 h-16 rounded-2xl border shadow-sm backdrop-blur transition-all duration-500 ${
+              isComplete
+                ? "bg-emerald-50/90 border-emerald-200 scale-105"
+                : "bg-white/85 border-slate-200"
+            }`}
+          >
+            <PawSpinner
+              size={44}
+              className={`drop-shadow-sm transition-all duration-500 ${
+                step === "generate_art" ? "scale-110" : "scale-100"
+              } ${isComplete ? "opacity-90" : ""}`}
+            />
           </div>
         </div>
       </div>
 
-      {/* Tip */}
       <div className="text-center px-6 max-w-sm">
         <div className="text-sm font-semibold text-slate-900">
-          Creating your design
+          {isComplete ? "Design ready" : currentStatus}
           {displayStyleLabel ? (
             <span className="text-amber-600"> · {displayStyleLabel}</span>
           ) : null}
         </div>
 
+        <div className="mt-2 text-xs text-slate-500">
+          {isComplete
+            ? "Your preview is ready."
+            : `Step ${Object.keys(STEP_CONFIG).indexOf(step) + 1} of 5`}
+        </div>
+
         <div className="mt-3 text-[11px] text-slate-700 transition-all duration-300">
-          <span className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1">
-            <span className="text-amber-700">●</span>
-            <span>{FUN_TIPS[tipIndex]}</span>
+          <span
+            className={`inline-flex items-center gap-2 rounded-full px-3 py-1 border transition-colors duration-500 ${
+              isComplete
+                ? "border-emerald-200 bg-emerald-50"
+                : "border-amber-200 bg-amber-50"
+            }`}
+          >
+            <span className={isComplete ? "text-emerald-700" : "text-amber-700"}>
+              ●
+            </span>
+            <span>{isComplete ? "All set." : FUN_TIPS[tipIndex]}</span>
           </span>
         </div>
       </div>
