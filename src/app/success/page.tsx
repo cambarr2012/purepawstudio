@@ -1,15 +1,17 @@
-// src/app/success/page.tsx
 import Link from "next/link";
 import Image from "next/image";
 
 type SuccessPageProps = {
-  searchParams?: {
+  searchParams?: Promise<{
     session_id?: string;
-  };
+  }>;
 };
 
-export default function SuccessPage({ searchParams }: SuccessPageProps) {
-  const hasSession = Boolean(searchParams?.session_id);
+export default async function SuccessPage({
+  searchParams,
+}: SuccessPageProps) {
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const hasSession = Boolean(resolvedSearchParams?.session_id);
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#f7f3ed] px-4 py-8 text-slate-900 sm:px-6 sm:py-12">
@@ -78,7 +80,7 @@ export default function SuccessPage({ searchParams }: SuccessPageProps) {
           <div className="border-t border-stone-100 px-6 py-8 sm:px-10 sm:py-10">
             <div className="grid gap-4 sm:grid-cols-3 sm:gap-5">
               <div className="rounded-[22px] border border-stone-200 bg-stone-50/90 p-5 sm:p-6">
-                <div className="mb-4 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-sm font-semibold text-slate-900 border border-stone-200">
+                <div className="mb-4 inline-flex h-9 w-9 items-center justify-center rounded-full border border-stone-200 bg-white text-sm font-semibold text-slate-900">
                   1
                 </div>
                 <p className="text-base font-semibold text-slate-900">
@@ -91,7 +93,7 @@ export default function SuccessPage({ searchParams }: SuccessPageProps) {
               </div>
 
               <div className="rounded-[22px] border border-stone-200 bg-stone-50/90 p-5 sm:p-6">
-                <div className="mb-4 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-sm font-semibold text-slate-900 border border-stone-200">
+                <div className="mb-4 inline-flex h-9 w-9 items-center justify-center rounded-full border border-stone-200 bg-white text-sm font-semibold text-slate-900">
                   2
                 </div>
                 <p className="text-base font-semibold text-slate-900">
@@ -104,7 +106,7 @@ export default function SuccessPage({ searchParams }: SuccessPageProps) {
               </div>
 
               <div className="rounded-[22px] border border-stone-200 bg-stone-50/90 p-5 sm:p-6">
-                <div className="mb-4 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-sm font-semibold text-slate-900 border border-stone-200">
+                <div className="mb-4 inline-flex h-9 w-9 items-center justify-center rounded-full border border-stone-200 bg-white text-sm font-semibold text-slate-900">
                   3
                 </div>
                 <p className="text-base font-semibold text-slate-900">

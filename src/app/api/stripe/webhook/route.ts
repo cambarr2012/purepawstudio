@@ -1,4 +1,3 @@
-// src/app/api/stripe/webhook/route.ts
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
@@ -31,7 +30,16 @@ function getAppUrl() {
   return (
     process.env.NEXT_PUBLIC_APP_URL ||
     process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.SITE_URL ||
     "https://purepawstudio.com"
+  );
+}
+
+function getSupabaseUrl() {
+  return (
+    process.env.SUPABASE_URL ||
+    process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    null
   );
 }
 
@@ -65,28 +73,28 @@ export async function POST(req: Request) {
   let event: Stripe.Event;
 
   try {
-    if (process.env.NODE_ENV === "development") {
-      event = JSON.parse(rawBody) as Stripe.Event;
-    } else {
-      if (!sig || !webhookSecret || !stripeSecretKey) {
-        console.error("[webhook] Missing sig/secret/stripe key", {
+    const canVerifySignature = !!sig && !!webhookSecret && !!stripeSecretKey;
+
+    if (canVerifySignature) {
+      const stripe = new Stripe(stripeSecretKey!);
+      event = stripe.webhooks.constructEvent(rawBody, sig!, webhookSecret!);
+    } else if (process.env.NODE_ENV === "development") {
+      console.warn(
+        "[webhook] Falling back to raw JSON parse because signature verification inputs are missing.",
+        {
           hasSig: !!sig,
           hasWebhookSecret: !!webhookSecret,
           hasStripeKey: !!stripeSecretKey,
-        });
-        return new NextResponse("Bad request", { status: 400 });
-      }
-
-      const stripe = new Stripe(stripeSecretKey);
-
-      try {
-        event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
-      } catch (err: any) {
-        console.error("[webhook] Signature verification failed:", err.message);
-        return new NextResponse(`Webhook error: ${err.message}`, {
-          status: 400,
-        });
-      }
+        }
+      );
+      event = JSON.parse(rawBody) as Stripe.Event;
+    } else {
+      console.error("[webhook] Missing sig/secret/stripe key", {
+        hasSig: !!sig,
+        hasWebhookSecret: !!webhookSecret,
+        hasStripeKey: !!stripeSecretKey,
+      });
+      return new NextResponse("Bad request", { status: 400 });
     }
 
     if (event.type !== "checkout.session.completed") {
@@ -97,6 +105,16 @@ export async function POST(req: Request) {
     const session = event.data.object as Stripe.Checkout.Session;
     const metadata = (session.metadata || {}) as SessionMetadata;
 
+    console.log("[webhook] session received", {
+      sessionId: session.id,
+      client_reference_id: session.client_reference_id,
+      metadata: session.metadata,
+      customer_email: session.customer_email,
+      customer_details: session.customer_details,
+      amount_total: session.amount_total,
+      currency: session.currency,
+    });
+
     const orderId =
       metadata.orderId ||
       metadata.order_id ||
@@ -104,7 +122,19 @@ export async function POST(req: Request) {
       undefined;
 
     const artworkId = metadata.artworkId || metadata.artwork_id || undefined;
-    const artworkUrl = metadata.artworkUrl || metadata.artwork_url || undefined;
+
+    let artworkUrl = metadata.artworkUrl || metadata.artwork_url || undefined;
+
+    if (!artworkUrl && artworkId) {
+      const supabaseUrl = getSupabaseUrl();
+      const artworksBucket = process.env.SUPABASE_ARTWORKS_BUCKET || "artworks";
+
+      if (supabaseUrl) {
+        artworkUrl = `${supabaseUrl}/storage/v1/object/public/${artworksBucket}/artworks/${artworkId}.png`;
+        console.log("[webhook] Reconstructed artworkUrl from artworkId:", artworkUrl);
+      }
+    }
+
     const styleId = metadata.styleId || metadata.style_id || undefined;
     const productType =
       metadata.productType || metadata.product_type || "flask";
@@ -114,6 +144,15 @@ export async function POST(req: Request) {
       session.customer_details?.email || session.customer_email || null;
     const firstName = getFirstName(customerName);
     const paymentIntentId = resolvePaymentIntentId(session.payment_intent);
+
+    console.log("[webhook] resolved", {
+      orderId,
+      artworkId,
+      artworkUrl,
+      styleId,
+      productType,
+      customerEmail,
+    });
 
     let shouldSendConfirmationEmail = false;
     let printFileUrl: string | null = null;
@@ -172,6 +211,14 @@ export async function POST(req: Request) {
       try {
         const appUrl = getAppUrl();
 
+        console.log("[webhook] Calling generate-print-file:", {
+          appUrl,
+          orderId,
+          artworkId,
+          artworkUrl,
+          styleId,
+        });
+
         const res = await fetch(`${appUrl}/api/orders/generate-print-file`, {
           method: "POST",
           headers: {
@@ -197,6 +244,12 @@ export async function POST(req: Request) {
 
           printFileUrl = data.printFileUrl || null;
           animationUrl = data.qrTargetUrl || data.targetUrl || null;
+
+          console.log("[webhook] generate-print-file succeeded:", {
+            orderId,
+            printFileUrl,
+            animationUrl,
+          });
         }
       } catch (err) {
         console.error("[webhook] Error generating print file:", err);
@@ -208,7 +261,11 @@ export async function POST(req: Request) {
     } else if (!customerEmail) {
       console.warn("[webhook] No customer email – cannot send confirmation email.");
     } else if (!shouldSendConfirmationEmail) {
-      console.log("[webhook] Confirmation email skipped.");
+      console.log("[webhook] Confirmation email skipped.", {
+        orderId,
+        customerEmail,
+        shouldSendConfirmationEmail,
+      });
     } else {
       try {
         const emailResult = await sendOrderConfirmationEmail({
@@ -226,11 +283,11 @@ export async function POST(req: Request) {
           animationUrl,
         });
 
-        console.log("[webhook] Confirmation email sent:", {
+        console.log("[webhook] Confirmation email result:", {
           orderId,
           to: customerEmail,
-          emailId: emailResult.data?.id,
-          error: emailResult.error,
+          emailId: emailResult?.data?.id,
+          error: emailResult?.error,
         });
       } catch (err) {
         console.error("[webhook] Failed to send confirmation email:", err);
@@ -294,19 +351,19 @@ export async function POST(req: Request) {
         shippingAddress,
       });
 
-      console.log("[webhook] Internal order alert sent:", {
+      console.log("[webhook] Internal order alert result:", {
         orderId,
         to: internalAlertTo,
-        emailId: internalResult.data?.id,
-        error: internalResult.error,
+        emailId: internalResult?.data?.id,
+        error: internalResult?.error,
       });
     } catch (err) {
       console.error("[webhook] Failed to send internal order alert:", err);
     }
 
     return new NextResponse("OK", { status: 200 });
-  } catch (err) {
-    console.error("[webhook] Unhandled top-level error:", err);
+  } catch (err: any) {
+    console.error("[webhook] Unhandled top-level error:", err?.message || err);
     return new NextResponse("Internal webhook error", { status: 500 });
   }
 }

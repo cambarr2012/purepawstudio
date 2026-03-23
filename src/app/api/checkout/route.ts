@@ -14,6 +14,14 @@ interface CheckoutBody {
   [key: string]: unknown;
 }
 
+function resolveSupabaseUrl() {
+  return (
+    process.env.SUPABASE_URL ||
+    process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    null
+  );
+}
+
 export async function GET() {
   return NextResponse.json({
     ok: true,
@@ -44,7 +52,7 @@ export async function POST(req: NextRequest) {
         ? body.artworkUrl
         : undefined;
 
-    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseUrl = resolveSupabaseUrl();
     const artworksBucket = process.env.SUPABASE_ARTWORKS_BUCKET || "artworks";
 
     if (!artworkUrl && artworkId && supabaseUrl) {
@@ -96,18 +104,20 @@ export async function POST(req: NextRequest) {
     const Stripe = StripeModule.default;
     const stripe = new Stripe(stripeSecretKey);
 
-    const metadata: Record<string, string | undefined> = {
+    const metadata: Record<string, string> = {
       orderId,
       artworkId,
-      artworkUrl,
-      styleId,
+      artworkUrl: artworkUrl || "",
+      styleId: styleId || "",
       productType,
       order_id: orderId,
       artwork_id: artworkId,
-      artwork_url: artworkUrl,
-      style_id: styleId,
+      artwork_url: artworkUrl || "",
+      style_id: styleId || "",
       product_type: productType,
     };
+
+    console.log("[checkout] Final metadata going to Stripe:", metadata);
 
     const sessionParams: any = {
       mode: "payment",
@@ -122,7 +132,7 @@ export async function POST(req: NextRequest) {
       sessionParams.customer_email = email;
     }
 
-    const session = await stripe.checkout.sessions.create(sessionParams as any);
+    const session = await stripe.checkout.sessions.create(sessionParams);
 
     console.log("[checkout] Session created:", session.id);
     console.log("[checkout] Session metadata:", session.metadata);
@@ -140,7 +150,7 @@ export async function POST(req: NextRequest) {
         ok: true,
         orderId,
         artworkId,
-        artworkUrl,
+        artworkUrl: artworkUrl || null,
         styleId: styleId ?? null,
         productType,
         checkoutUrl: session.url,
