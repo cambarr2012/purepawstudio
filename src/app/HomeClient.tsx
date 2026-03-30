@@ -817,6 +817,123 @@ export default function HomeClient() {
           </div>
         </header>
 
+       <section className="mb-5 md:mb-6">
+  <div className="overflow-hidden rounded-[2rem] border border-white/70 bg-[#f8f3e8]/88 p-4 shadow-[0_18px_45px_rgba(15,23,42,0.05)] backdrop-blur-sm md:p-6">
+    <div className="grid items-center gap-6 md:grid-cols-2">
+      <div>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-800">
+          Example product
+        </p>
+
+        <h2 className="mt-2 text-[1.7rem] font-semibold tracking-tight text-slate-950 md:text-[2rem]">
+          From real pet photo to finished bottle
+        </h2>
+
+        <p className="mt-3 max-w-xl text-sm leading-6 text-slate-600 md:text-[15px]">
+          Here’s a real example showing the original pet photo alongside the
+          finished personalised bottle. We keep the face, markings and
+          personality, then turn it into a clean design that looks great on the
+          product.
+        </p>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          <span className="inline-flex rounded-full border border-amber-200/80 bg-[#fbf4e8] px-3 py-1 text-[11px] font-medium text-amber-900">
+            Real product example
+          </span>
+          <span className="inline-flex rounded-full border border-amber-200/80 bg-[#fbf4e8] px-3 py-1 text-[11px] font-medium text-amber-900">
+            Printed in the UK
+          </span>
+          <span className="inline-flex rounded-full border border-amber-200/80 bg-[#fbf4e8] px-3 py-1 text-[11px] font-medium text-amber-900">
+            Free UK shipping
+          </span>
+        </div>
+
+        <div className="mt-5 flex flex-wrap items-center gap-3">
+          <a
+            href="https://www.instagram.com/purepaw.studio/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-[13px] font-semibold text-slate-800 shadow-sm transition hover:border-amber-300 hover:bg-amber-50"
+          >
+            <img
+              src="/instagram.svg"
+              alt="Instagram"
+              className="h-4 w-4 object-contain"
+            />
+            <span>Instagram</span>
+          </a>
+
+          <a
+            href="https://www.tiktok.com/@purepawstudio"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-[13px] font-semibold text-slate-800 shadow-sm transition hover:border-amber-300 hover:bg-amber-50"
+          >
+            <img
+              src="/tiktok.svg"
+              alt="TikTok"
+              className="h-4 w-4 object-contain"
+            />
+            <span>TikTok</span>
+          </a>
+
+          <a
+            href="https://www.facebook.com/people/PurePaw-Studio/61576452217191/?mibextid=wwXIfr&rdid=OcEVJriDWUkMpoO1&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2F1AyE5P5g9M%2F%3Fmibextid%3DwwXIfr"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-[13px] font-semibold text-slate-800 shadow-sm transition hover:border-amber-300 hover:bg-amber-50"
+          >
+            <img
+              src="/facebook.svg"
+              alt="Facebook"
+              className="h-4 w-4 object-contain"
+            />
+            <span>Facebook</span>
+          </a>
+        </div>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="rounded-[1.5rem] border border-slate-200 bg-white p-3 shadow-sm">
+          <div className="aspect-[4/5] overflow-hidden rounded-[1rem] border border-slate-200 bg-slate-50">
+            <img
+              src="/example-dog.jpg"
+              alt="Original dog photo in red jumper"
+              className="h-full w-full object-cover"
+            />
+          </div>
+          <div className="mt-3">
+            <p className="text-sm font-semibold text-slate-900">
+              Original photo
+            </p>
+            <p className="mt-1 text-[12px] leading-5 text-slate-500">
+              A clear portrait-style photo gives the strongest final result.
+            </p>
+          </div>
+        </div>
+
+        <div className="rounded-[1.5rem] border border-slate-200 bg-white p-3 shadow-sm">
+          <div className="aspect-[4/5] overflow-hidden rounded-[1rem] border border-slate-200 bg-white">
+            <img
+              src="/example-bottle.jpg"
+              alt="Finished PurePaw bottle example"
+              className="block h-full w-full object-cover"
+            />
+          </div>
+          <div className="mt-3">
+            <p className="text-sm font-semibold text-slate-900">
+              Finished bottle
+            </p>
+            <p className="mt-1 text-[12px] leading-5 text-slate-500">
+              Designed to look clean, clear and premium on the finished bottle.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
         <section className="mb-5 md:mb-6">
           <div className="overflow-hidden rounded-[2rem] border border-white/70 bg-[#f8f3e8]/88 p-4 shadow-[0_18px_45px_rgba(15,23,42,0.05)] backdrop-blur-sm md:p-5">
             <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
@@ -886,9 +1003,21 @@ export default function HomeClient() {
         <div className="mb-6 space-y-3">
           <div className="flex flex-wrap items-center justify-center gap-2 md:gap-3">
             {[
-              { number: 1, label: "Upload photo", active: step1Active || step2Active || step3Active || step4Active },
-              { number: 2, label: "Check photo", active: step2Active || step3Active || step4Active },
-              { number: 3, label: "Create preview", active: step3Active || step4Active },
+              {
+                number: 1,
+                label: "Upload photo",
+                active: step1Active || step2Active || step3Active || step4Active,
+              },
+              {
+                number: 2,
+                label: "Check photo",
+                active: step2Active || step3Active || step4Active,
+              },
+              {
+                number: 3,
+                label: "Create preview",
+                active: step3Active || step4Active,
+              },
               { number: 4, label: "Checkout", active: step4Active },
             ].map((item) => (
               <div
@@ -1475,6 +1604,7 @@ export default function HomeClient() {
             </div>
           </section>
         </div>
+
         <Footer />
       </div>
     </main>
