@@ -9,25 +9,28 @@ declare global {
 }
 
 type GooglePurchaseTrackerProps = {
-  transactionId?: string;
-  value?: number;
+  transactionId: string;
+  value: number;
   currency?: string;
+  isTest?: boolean;
 };
 
 export default function GooglePurchaseTracker({
   transactionId,
-  value = 19.99,
+  value,
   currency = "GBP",
+  isTest = false,
 }: GooglePurchaseTrackerProps) {
   useEffect(() => {
     if (!window.gtag) return;
 
     window.gtag("event", "purchase", {
-      transaction_id: transactionId || `purepaw-${Date.now()}`,
+      transaction_id: transactionId,
       value,
       currency,
+      ...(isTest ? { debug_mode: true } : {}),
     });
-  }, [transactionId, value, currency]);
+  }, [transactionId, value, currency, isTest]);
 
   return null;
 }
