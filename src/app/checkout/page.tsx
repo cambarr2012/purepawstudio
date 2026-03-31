@@ -31,6 +31,38 @@ const PRODUCT_PRICES: Record<ProductType, number> = {
   gym_bottle: 19.99,
 };
 
+declare global {
+  interface Window {
+    gtag?: (...args: any[]) => void;
+  }
+}
+
+function trackBeginCheckout({
+  productType,
+  value,
+  currency = "GBP",
+}: {
+  productType: ProductType;
+  value: number;
+  currency?: string;
+}) {
+  if (typeof window === "undefined" || !window.gtag) return;
+
+  window.gtag("event", "begin_checkout", {
+    currency,
+    value,
+    items: [
+      {
+        item_name: PRODUCT_LABELS[productType],
+        item_category: "Personalised Pet Bottle",
+        item_variant: productType,
+        price: value,
+        quantity: 1,
+      },
+    ],
+  });
+}
+
 function CheckoutContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -59,7 +91,10 @@ function CheckoutContent() {
     if (styleFromQuery) setStyleId(styleFromQuery);
 
     const productTypeFromQuery = searchParams.get("productType");
-    if (productTypeFromQuery === "gym_bottle" || productTypeFromQuery === "flask") {
+    if (
+      productTypeFromQuery === "gym_bottle" ||
+      productTypeFromQuery === "flask"
+    ) {
       setProductType(productTypeFromQuery);
     }
   }, [searchParams]);
@@ -104,6 +139,12 @@ function CheckoutContent() {
       setOrderId(null);
 
       const quantity = 1;
+
+      trackBeginCheckout({
+        productType,
+        value: productPrice,
+        currency: "GBP",
+      });
 
       const orderRes = await fetch("/api/orders", {
         method: "POST",
@@ -219,9 +260,12 @@ function CheckoutContent() {
 
         {!hasArtwork && (
           <div className="mb-5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3">
-            <p className="text-sm font-medium text-rose-800">No bottle selected</p>
+            <p className="text-sm font-medium text-rose-800">
+              No bottle selected
+            </p>
             <p className="text-[12px] text-rose-700">
-              Please return to the studio and create your bottle before checking out.
+              Please return to the studio and create your bottle before checking
+              out.
             </p>
           </div>
         )}
@@ -242,10 +286,13 @@ function CheckoutContent() {
                 </div>
 
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-slate-900">Nearly there</p>
+                  <p className="text-sm font-semibold text-slate-900">
+                    Nearly there
+                  </p>
                   <p className="mt-1 text-[13px] leading-6 text-slate-600">
-                    Fill in your details below to continue to secure payment. Look
-                    out for the extra bonus we send in your email after your order.
+                    Fill in your details below to continue to secure payment.
+                    Look out for the extra bonus we send in your email after
+                    your order.
                   </p>
                 </div>
               </div>
@@ -441,7 +488,9 @@ function CheckoutContent() {
               <div className="border-t border-slate-200 pt-3 space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-slate-600">Product</span>
-                  <span className="font-medium text-slate-900">{formattedPrice}</span>
+                  <span className="font-medium text-slate-900">
+                    {formattedPrice}
+                  </span>
                 </div>
 
                 <div className="flex items-center justify-between text-sm">
