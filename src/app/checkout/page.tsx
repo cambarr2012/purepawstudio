@@ -34,6 +34,7 @@ const PRODUCT_PRICES: Record<ProductType, number> = {
 declare global {
   interface Window {
     gtag?: (...args: any[]) => void;
+    fbq?: (...args: any[]) => void;
   }
 }
 
@@ -60,6 +61,32 @@ function trackBeginCheckout({
         quantity: 1,
       },
     ],
+  });
+}
+
+function trackMetaBeginCheckout({
+  productType,
+  value,
+  currency = "GBP",
+}: {
+  productType: ProductType;
+  value: number;
+  currency?: string;
+}) {
+  if (typeof window === "undefined" || !window.fbq) return;
+
+  window.fbq("track", "InitiateCheckout", {
+    value,
+    currency,
+    content_name: PRODUCT_LABELS[productType],
+    content_category: "Personalised Pet Bottle",
+    contents: [
+      {
+        id: productType,
+        quantity: 1,
+      },
+    ],
+    num_items: 1,
   });
 }
 
@@ -145,6 +172,14 @@ function CheckoutContent() {
         value: productPrice,
         currency: "GBP",
       });
+
+      trackMetaBeginCheckout({
+        productType,
+        value: productPrice,
+        currency: "GBP",
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 300));
 
       const orderRes = await fetch("/api/orders", {
         method: "POST",
